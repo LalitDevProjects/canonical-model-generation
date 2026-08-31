@@ -32,6 +32,8 @@ from pathlib import Path
 from typing import Any, Literal
 from uuid import UUID
 
+from referencing import Registry
+
 from generated.C11.RunManifest._1_0 import Pins
 
 from agents.model_gateway import Budget, ModelGateway
@@ -117,6 +119,13 @@ class Agent(ABC):
     "constructor/class-attribute override, not monkeypatching" pattern
     every store in this repo already uses for its own root path
     (pipeline/run_store.py::RunStore's base_path, etc)."""
+    schema_registry: Registry | None = None
+    """Increment 7: set when output_schema has external $refs (e.g.
+    Semantic Resolver's contracts/C6/ConceptCluster/1.0.json, which $refs
+    into common/defs.json) - passed through to validate_schema's own
+    optional registry kwarg. None (the default) preserves Increment 6's
+    two agents' exact behaviour, whose output_schema dicts have no
+    external $ref at all."""
 
     @abstractmethod
     def assemble_context(self, item: WorkItem, api: SubstrateApi) -> dict[str, Any]:
@@ -160,7 +169,7 @@ class Agent(ABC):
             )
 
             try:
-                output = validate_schema(raw, self.output_schema)
+                output = validate_schema(raw, self.output_schema, registry=self.schema_registry)
             except SchemaValidationFailed as exc:
                 if schema_retries_left > 0:
                     schema_retries_left -= 1

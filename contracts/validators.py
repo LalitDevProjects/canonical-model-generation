@@ -80,7 +80,7 @@ def sign(signing_key: bytes, hash_hex: str) -> str:
     return hmac.new(signing_key, hash_hex.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
-def _unwrap(value: object) -> object:
+def unwrap_ref(value: object) -> object:
     """datamodel-code-generator does not consistently collapse RootModel
     wrapper classes for $ref-typed scalar fields: a bare single '$ref'
     property collapses to a plain constrained str, but the same $def used
@@ -90,6 +90,10 @@ def _unwrap(value: object) -> object:
     so comparisons/parsing below are correct regardless of which form a
     given field took, and remain correct if a future regeneration changes
     which fields get collapsed.
+
+    Public (no leading underscore) since Increment 7:
+    algorithms/clustering.py reuses this for evidenceRefs unwrapping when
+    assembling a ConceptCluster's own evidenceRefs list.
     """
     root = getattr(value, "root", None)
     return root if root is not None else value
@@ -119,16 +123,16 @@ def check_i1_evidence_resolvable(
 ) -> list[InvariantViolation]:
     """I1: every AttributeRecord.evidenceRefs entry MUST resolve to an artefact
     listed in the run's CorpusManifest."""
-    known_artefact_ids = {str(_unwrap(a.artefactId)) for a in manifest.artefacts}
+    known_artefact_ids = {str(unwrap_ref(a.artefactId)) for a in manifest.artefacts}
     violations: list[InvariantViolation] = []
     for attr in attributes:
         for ref in attr.evidenceRefs:
-            ref_value = str(_unwrap(ref))
+            ref_value = str(unwrap_ref(ref))
             artefact_id = artefact_id_from_evref(ref_value)
             if artefact_id is None or artefact_id not in known_artefact_ids:
                 violations.append(InvariantViolation(
                     invariant="I1",
-                    record_id=str(_unwrap(attr.attributeId)),
+                    record_id=str(unwrap_ref(attr.attributeId)),
                     detail=f"evidenceRef {ref_value!r} does not resolve to any artefact in the CorpusManifest",
                 ))
     return violations
@@ -141,12 +145,12 @@ def check_i2_cluster_members_same_run(
 ) -> list[InvariantViolation]:
     """I2: every ConceptCluster member MUST reference an AttributeRecord
     produced within the same run."""
-    attrs_by_id = {str(_unwrap(a.attributeId)): a for a in attributes}
+    attrs_by_id = {str(unwrap_ref(a.attributeId)): a for a in attributes}
     violations: list[InvariantViolation] = []
     for cluster in clusters:
-        cluster_id = str(_unwrap(cluster.clusterId))
+        cluster_id = str(unwrap_ref(cluster.clusterId))
         for member in cluster.members:
-            member_attr_id = str(_unwrap(member.attributeId))
+            member_attr_id = str(unwrap_ref(member.attributeId))
             attr = attrs_by_id.get(member_attr_id)
             if attr is None:
                 violations.append(InvariantViolation(
@@ -170,11 +174,11 @@ def check_i3_candidate_traces_to_attribute(
 ) -> list[InvariantViolation]:
     """I3: every CanonicalCandidate MUST trace to at least one ConceptCluster,
     and transitively to at least one AttributeRecord."""
-    clusters_by_id = {str(_unwrap(c.clusterId)): c for c in clusters}
-    attr_ids = {str(_unwrap(a.attributeId)) for a in attributes}
+    clusters_by_id = {str(unwrap_ref(c.clusterId)): c for c in clusters}
+    attr_ids = {str(unwrap_ref(a.attributeId)) for a in attributes}
     violations: list[InvariantViolation] = []
     for cand in candidates:
-        candidate_id = str(_unwrap(cand.candidateId))
+        candidate_id = str(unwrap_ref(cand.candidateId))
         if not cand.clusterRefs:
             violations.append(InvariantViolation(
                 invariant="I3",
@@ -183,7 +187,7 @@ def check_i3_candidate_traces_to_attribute(
             ))
             continue
         for cluster_ref in cand.clusterRefs:
-            cluster_ref_value = str(_unwrap(cluster_ref))
+            cluster_ref_value = str(unwrap_ref(cluster_ref))
             cluster = clusters_by_id.get(cluster_ref_value)
             if cluster is None:
                 violations.append(InvariantViolation(
@@ -192,7 +196,7 @@ def check_i3_candidate_traces_to_attribute(
                     detail=f"clusterRef {cluster_ref_value!r} does not resolve to a known ConceptCluster",
                 ))
                 continue
-            if not any(str(_unwrap(m.attributeId)) in attr_ids for m in cluster.members):
+            if not any(str(unwrap_ref(m.attributeId)) in attr_ids for m in cluster.members):
                 violations.append(InvariantViolation(
                     invariant="I3",
                     record_id=candidate_id,
@@ -276,15 +280,15 @@ def ledger_body(entry: C3Egressledgerentry) -> dict[str, object]:
     check_i6_ledger_chain_unbroken, which VERIFIES it below, are provably
     the same recipe this way, not two definitions that could drift
     apart."""
-    prev_hash = _unwrap(entry.prevHash)
+    prev_hash = unwrap_ref(entry.prevHash)
     return {
         "entryId": entry.entryId,
         "at": entry.at.isoformat(),
-        "region": str(_unwrap(entry.region)),
+        "region": str(unwrap_ref(entry.region)),
         "artefactId": entry.artefactId,
-        "contentHash": str(_unwrap(entry.contentHash)),
-        "classification": sorted(str(_unwrap(label)) for label in entry.classification),
-        "verdict": str(_unwrap(entry.verdict)),
+        "contentHash": str(unwrap_ref(entry.contentHash)),
+        "classification": sorted(str(unwrap_ref(label)) for label in entry.classification),
+        "verdict": str(unwrap_ref(entry.verdict)),
         "policyVersion": entry.policyVersion,
         "lawfulBasis": entry.lawfulBasis,
         "approver": entry.approver,
@@ -326,7 +330,7 @@ def check_i6_ledger_chain_unbroken(
     """
     violations: list[InvariantViolation] = []
     if entries:
-        regions = {str(_unwrap(e.region)) for e in entries}
+        regions = {str(unwrap_ref(e.region)) for e in entries}
         if len(regions) > 1:
             violations.append(InvariantViolation(
                 invariant="I6",
@@ -337,7 +341,7 @@ def check_i6_ledger_chain_unbroken(
 
     previous_hash: str | None = None
     for index, entry in enumerate(entries):
-        prev_hash = _unwrap(entry.prevHash)
+        prev_hash = unwrap_ref(entry.prevHash)
         if index == 0:
             if prev_hash is not None:
                 violations.append(InvariantViolation(
@@ -352,7 +356,7 @@ def check_i6_ledger_chain_unbroken(
                 detail=f"prevHash {prev_hash!r} does not match previous entry's hash {previous_hash!r}; chain broken",
             ))
 
-        entry_hash = str(_unwrap(entry.hash))
+        entry_hash = str(unwrap_ref(entry.hash))
         recomputed_hash = hashlib.sha256(canonical_json_bytes(ledger_body(entry))).hexdigest()
         if recomputed_hash != entry_hash:
             violations.append(InvariantViolation(

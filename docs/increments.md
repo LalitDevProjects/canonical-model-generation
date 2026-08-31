@@ -14,7 +14,7 @@ emission.
 | I4 | Gate and ledger | **Complete** | The planted personal-data example is masked; the licence-restricted artefact is blocked and appears in `exclusions`; the ledger chain verifies |
 | I5 | Substrate and retrieval | **Complete** | Retrieval is deterministic across repeats; the four-hop lineage query returns the expected path |
 | I6 | Agent runtime | **Complete** | A denied tool call is journalled and refused; a schema violation retries then escalates; the planted injection string changes nothing |
-| I7 | Clustering and conflicts | Not started | Planted synonyms cluster; the planted homonym does not merge; evaluation harness meets the Semantic Resolver thresholds |
+| I7 | Clustering and conflicts | **Complete** | Planted synonyms cluster; the planted homonym does not merge; evaluation harness meets the Semantic Resolver thresholds |
 | I8 | Synthesis and coverage | Not started | Coverage is computed with a published denominator; Gate 1 blocks correctly on a seeded unresolved mandatory attribute |
 | I9 | Emission and workshop pack | Not started | Emitted schemas validate; every round-trip test passes or its loss is declared; the pack is complete enough to run a real session from |
 
@@ -397,6 +397,187 @@ environment variables).
   `TestASchemaViolationRetriesThenEscalates`, and
   `TestThePlantedInjectionStringChangesNothing` (both a direct
   classifier-level check and an end-to-end `filter_relevance` run).
+
+## I7 - what was built
+
+- **Confirmed architecture (user, this session): deterministic decides,
+  agent adjudicates only the uncertain band.** `algorithms/clustering.py::run_clustering()`
+  (blocking -> similarity -> graph connected-components -> homonym
+  split -> conflict classification) is fully self-sufficient and alone
+  satisfies the acceptance test's first two clauses, with zero LLM
+  dependency - the Semantic Resolver agent is invoked only on
+  review-band material (score in `[review_band_low, link_threshold)`)
+  the deterministic pass can't confidently resolve. This mirrors
+  exactly how Repository Scout (Increment 6) adjudicates
+  `connectors/relevance.py`'s own "uncertain" middle band, and matches
+  Section 17.3's "deterministic before probabilistic... if the agents
+  disappoint, the platform still parses the estate."
+- **A real, empirically-found problem with the spec's own weights,
+  fixed and documented**: Section 9.3's literal `WEIGHTS`
+  (`embedding: 0.30`) assumes a real semantic embedding model. This
+  PoC's `substrate/embedding.py::mock_embed` (unchanged since Increment
+  5) is a deterministic SHA256 hash with *no* semantic content by its
+  own docstring's admission - under the spec's literal weights, two
+  attributes identical in every other feature still cap out at score
+  0.70, strictly below `LINK_THRESHOLD=0.72`, so *no* real pair could
+  ever auto-link. `config/platform.yaml`'s `clustering.weights`
+  discounts `embedding` to 0.05 (not 0.0) and redistributes the
+  remainder across `lexical`/`type`/`constraints`/`context` in their
+  original relative proportions - a documented PoC default, not a
+  claim about the algorithm in general (see
+  `config/settings.py::ClusteringConfig.weights`'s own field
+  description for the full empirical reasoning). `TYPE_COMPATIBILITY`
+  also gets one correction: same-datatype pairs resolve to 1.0 even
+  when the table doesn't happen to enumerate that exact pair (the
+  table's own "deliberately not equality" framing is about the
+  *divergent* pairs it lists, not a claim that equality itself needs
+  spelling out attribute by attribute) - the same class of fix as
+  Increment 6's `Budget.stage_spend` bug.
+- `algorithms/profiling.py` (Increment 3) is extended, not replaced:
+  `canonical_tokens`/`head_noun` gain optional `abbreviations`/
+  `lemmatise_fn`/`prefer` parameters, all defaulting to Increment 3's
+  exact behaviour - `profile()` itself calls them with none of the new
+  arguments, so `tests/algorithms/test_profiling.py` passes unmodified.
+  `algorithms/blocking.py` is the only caller that supplies real
+  arguments. The `prefer` parameter (last *preferred* token wins over
+  strict positional-last) is what lets `dateOfLoss` head on `date` like
+  `lossDate` does, using tokens already known to the system
+  (`config.clustering.abbreviations`' own values plus profiling.py's
+  existing `TEMPORAL_TOKENS`/`MONETARY_TOKENS`, both promoted to
+  public) - no DB dependency needed for the golden synonym triple to
+  co-block.
+- `algorithms/blocking.py`: `build_blocks()` (by-head, by-type, and an
+  optional DB-backed by-embedding key via `SubstrateApi.neighbours` -
+  degrades to empty, not fatal, when `api`/`run_id` are omitted, which
+  is what keeps the acceptance test hermetic), `dedupe_blocks()`
+  (exact-duplicate collapse + deterministic attributeId-sorted
+  truncation at `block_max_size`), `lemmatise()` (a documented
+  "Porter-lite" suffix stripper, not a real lemmatiser).
+- `algorithms/similarity.py`: `similarity()` against this repo's real
+  `ProfiledAttribute`/`ClusteringConfig` shapes - `embeddings` is an
+  explicit `dict[attributeId, vector]` parameter (from
+  `compute_embeddings()`, reusing `substrate/ingest.py`'s now-public
+  `attribute_embedding_text`), a documented deviation from the
+  pseudocode's literal `a.embedding` attribute access, the same
+  factory-for-signature-constraint status as Increment 6's
+  `make_repository_scout_classifier`. `pattern_range_similarity()`
+  implements real interval-overlap math for `range`/`length`
+  constraints and exact-match for `pattern`/`format`/`crossField`/
+  `custom` - including the non-obvious case that two *identical*
+  open-ended ranges (both declaring only `minimum=0`, say) must score
+  1.0, not 0.0, despite their union being infinite.
+- `algorithms/graph.py`: hand-rolled BFS connected components - no new
+  graph-library dependency (every dependency this repo has added so
+  far was load-bearing/non-substitutable; PoC block sizes, `<=40`
+  members per Section 8.6, make this trivial).
+- `algorithms/conflict.py`: `HOMONYM_SIGNALS` (all five, including a
+  fixed `divergent-parent-context` bug caught by its own test suite -
+  two attributes that simply have *no recorded parentPath* were
+  originally scoring as maximally divergent, the opposite of intended),
+  `split_on_homonym_signals()`/`min_cut_until()` (a documented greedy
+  lowest-edge-removal partition, explicitly not Stoer-Wagner), and all
+  six Section 9.5 conflict classes (`classify_conflict()` for the four
+  beyond synonym/homonym) since "conflict classification" is a named
+  build-guide deliverable, not just what the acceptance test happens to
+  probe. `contradiction_detected` (the one signal the spec ties to
+  "critic-assessed, cached") is an honest permanent stub - the
+  Adversarial Critic agent doesn't exist until Increment 8/9, matching
+  `substrate/api.py::acord_lookup`'s own empty-list precedent for the
+  same class of gap.
+- `algorithms/clustering.py`: `run_clustering()` (the full pipeline),
+  `build_cluster()` (deterministic, documented, provisional rules for
+  fields the spec doesn't mandate - `clusterId` content-addressed from
+  sorted member attributeIds; `role` = lowest-evidenceTier/most-central
+  member as `core`; `proposedConcept` = shortest member `localName`;
+  `confidence` = **min** of the cluster's pairwise edge scores,
+  conservative and consistent with "a wrongly merged pair ships a
+  defect"). `write_triage_export()` + `pipeline/run_store.py::TriageEntry`
+  are the concrete "triage export" deliverable - one append-only JSONL
+  sink (`run-store/{runId}/S4/triage.jsonl`) for both the deterministic
+  review queue and the agent's own `AWAIT_TRIAGE` escalations - **not**
+  the full Section 12.1 run-control API or Section 8.4 `AWAIT_*`
+  checkpoint machinery, which stay out of scope this increment,
+  matching Increment 6's own orchestrator-deferral precedent exactly.
+- `prompts/semantic-resolver/2.3.0.md`: Section 7.5.1's blocks
+  transcribed verbatim.
+- `agents/validation.py` + `agents/base.py`: the one real, additive
+  touch to already-tested Increment 6 framework code -
+  `validate_schema()` gains an optional `registry: Registry | None`
+  kwarg (default `None` preserves Increment 6's two agents' exact
+  behaviour, whose schemas have no external `$ref`), and `Agent` gains
+  a matching optional `schema_registry` class attribute. Needed because
+  `contracts/C6/ConceptCluster/1.0.json` `$ref`s into
+  `common/defs.json`, and Increment 6's `validate_schema` had no
+  registry to resolve that with (fine for its own two agents, whose
+  schemas had none).
+- `agents/semantic_resolver.py`: `SemanticResolverAgent` - `output_schema`
+  is the **real, unmodified** `contracts/C6/ConceptCluster/1.0.json`
+  (loaded from disk, not hand-copied - a single source of truth), with
+  a registry built once at import time via the same
+  `Registry().with_resources()` pattern `tests/contracts/test_fixtures.py`
+  already proved. Five real, code-checkable guardrails (G1-G5, Section
+  7.5.1 verbatim) - G4 in particular operationalises "obligation
+  conflicts MUST NOT be resolved here" as "a claimed
+  `conflictClass=obligation` must correspond to a *genuine* obligation
+  divergence among the real member records," catching an agent that
+  invents one to dodge a merge decision. `validate_semantics()` checks
+  for invented members (attributeIds not among the supplied anchor/
+  candidates) and unresolvable `evidenceRefs` (against the input
+  records' own already-I1-validated evidence - the same
+  self-referential known-set trick Schema Interpreter already uses).
+  `make_semantic_resolver_adjudicator(ctx)` is a factory - the same
+  shape as `make_repository_scout_classifier` - grouping review-band
+  pairs into their own connected components, one `WorkItem` per
+  component, persisting `AWAIT_TRIAGE` escalations
+  (`conflictClass=homonym` or `confidence<0.60`) to the same triage
+  sink `run_clustering()` uses. The third escalation rule ("members
+  span >3 source contracts -> adversarial-critic before S5") is
+  honestly deferred, not acted on - that agent doesn't exist until
+  Increment 8/9.
+- `golden/clustering/{us,uk,eu}/claim.yaml`: real, small OpenAPI
+  fragments through the real `parsers/openapi.py` path (a new
+  top-level bucket, since `golden/git/claims-{us,uk,eu}/openapi.yaml`
+  all already use uniform `lossDate` across regions and are
+  hard-count-asserted by `test_golden_corpus_e2e.py`). The planted
+  synonym triple (`lossDate`/US, `dateOfLoss`/UK, `dateSurvenance`/EU)
+  and the planted homonym (`Claim.metadata.claimDate` - UK: mandatory
+  `dateTime`, "when the record was created"; EU: optional `string`, "a
+  policy-administration reference date, unrelated to the claim event
+  itself") were both empirically score-verified via a scratch script
+  before being locked in (a real, caught problem: an early fixture
+  draft let the homonym's shared context/constraints spuriously
+  cross-link it to the unrelated synonym triple, fixed by giving each
+  its own parent shape and constraint) - `tests/algorithms/test_clustering_acceptance.py`
+  is the literal acceptance test, running the real parse -> profile ->
+  `run_clustering()` path with zero LLM and zero DB.
+- `eval/` (deferred at Increment 6 - no thresholds existed for its two
+  agents; real thresholds finally exist for Semantic Resolver) is
+  built for real: `eval/thresholds.py` (Cluster F1 >= 0.88, homonym
+  recall = 1.00 per Section 16.4), `eval/harness.py`
+  (`evaluate()`/`score_one()`, gated on the **worst** of `n_repeats`
+  runs per Section 16.4's own literal pseudocode, against an injectable
+  `adjudicate_factory` rather than a hardcoded agent - the same DI
+  convention as `gate/gate.py`/`substrate/ingest.py`/
+  `agents/model_gateway.py`). Running 5 real Anthropic calls per eval
+  case isn't reachable this session (no API key, the same still-current
+  Increment 6 constraint) - the harness's own arithmetic (F1, homonym
+  recall, worst-of-5 gating) is proven hermetically against a scripted
+  adjudicator; one `pytest.mark.llm` test exercises the real
+  `SemanticResolverAgent` end to end and skips cleanly.
+- 704 tests passing (up from 558 at I6; 2 skipped - both real-model
+  `pytest.mark.llm` tests, pending an API key), `mypy --strict` clean
+  across 160 source files, ~99.5% coverage overall (100% within every
+  module this increment touched or added - the only gap anywhere is
+  Increment 6's own already-accepted live-Anthropic-call body).
+- Acceptance-test clause mapping: "Planted synonyms cluster" and "the
+  planted homonym does not merge" ->
+  `tests/algorithms/test_clustering_acceptance.py` (zero LLM, zero DB
+  - the deterministic pipeline alone). "evaluation harness meets the
+  Semantic Resolver thresholds" -> `tests/eval/test_harness.py`'s
+  worst-of-5 gating arithmetic, proven for real; live-threshold
+  verification against a real model is the `pytest.mark.llm` test,
+  honestly deferred pending an API key, the same posture as Increment
+  6's own model-gateway acceptance clause.
 
 **Confirmed decisions**: real Anthropic API provider (a genuine
 departure from the "mock until Increment 6" framing, since Increment 6

@@ -31,7 +31,7 @@ increment.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from generated.C5.AttributeRecord._1_0 import C5Attributerecord
@@ -74,26 +74,62 @@ TYPE_FAMILY: dict[DataType, str] = {
 Increment 7's blocking work owns the richer, versioned notion of type
 compatibility groups."""
 
-_TOKEN_SPLIT_RE = re.compile(r"[_\-]|(?<=[a-z0-9])(?=[A-Z])")
+_TOKEN_SPLIT_RE = re.compile(r"[_\-.]|(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+"""Section 9.2's own splitter, verbatim (snake_case, kebab-case, dotted
+paths, camelCase, and an ALLCAPS-to-Capitalised boundary). A superset of
+Increment 3's original [_\\-]-only pattern - every existing test string
+(lossDate, loss_date, status, "") splits identically under the extension."""
 
 
-def canonical_tokens(local_name: str) -> tuple[str, ...]:
+def canonical_tokens(
+    local_name: str,
+    *,
+    abbreviations: Mapping[str, str] | None = None,
+    lemmatise_fn: Callable[[str], str] | None = None,
+) -> tuple[str, ...]:
     """Splits snake_case and camelCase local names into lowercase tokens,
-    e.g. "lossDate" -> ("loss", "date"). Provisional: Section 9.2's
-    versioned abbreviation dictionary (expanding e.g. "amt" -> "amount")
-    is Increment 7 scope, not implemented here."""
-    return tuple(t.lower() for t in _TOKEN_SPLIT_RE.split(local_name) if t)
+    e.g. "lossDate" -> ("loss", "date"). profile() (Section 9.1) calls
+    this with neither optional argument, preserving Increment 3's exact
+    output. Section 9.2's versioned abbreviation dictionary and
+    lemmatisation are applied only when a caller supplies them -
+    algorithms/blocking.py (Increment 7) is that caller; one tokenizer
+    implementation, not a parallel one for blocking."""
+    tokens = []
+    for part in _TOKEN_SPLIT_RE.split(local_name):
+        if not part:
+            continue
+        token = part.lower()
+        if abbreviations is not None:
+            token = abbreviations.get(token, token)
+        if lemmatise_fn is not None:
+            token = lemmatise_fn(token)
+        tokens.append(token)
+    return tuple(tokens)
 
 
-def head_noun(tokens: tuple[str, ...]) -> str:
+def head_noun(tokens: tuple[str, ...], *, prefer: frozenset[str] = frozenset()) -> str:
     """The last token is treated as the head noun (e.g. "lossDate" ->
-    "date"), a common convention for right-headed compounds. Provisional -
-    Increment 7 territory for anything more linguistically aware."""
-    return tokens[-1] if tokens else ""
+    "date"), a common convention for right-headed compounds. With
+    prefer=frozenset() (profile()'s own call, and the default), this is
+    exactly Increment 3's rule. algorithms/blocking.py (Increment 7)
+    passes a non-empty prefer set of known "concept noun" tokens so that
+    e.g. "dateOfLoss" (last token "loss") still heads on "date" like
+    "lossDate" does - the last token that IS a preferred concept noun
+    wins over strict positional last-token."""
+    if not tokens:
+        return ""
+    if prefer:
+        for token in reversed(tokens):
+            if token in prefer:
+                return token
+    return tokens[-1]
 
 
-_TEMPORAL_TOKENS = {"date", "time", "timestamp", "at", "when", "occurred", "datetime"}
-_MONETARY_TOKENS = {"amount", "reserve", "premium", "price", "cost", "fee", "value", "sum", "total"}
+TEMPORAL_TOKENS = {"date", "time", "timestamp", "at", "when", "occurred", "datetime"}
+MONETARY_TOKENS = {"amount", "reserve", "premium", "price", "cost", "fee", "value", "sum", "total"}
+"""Public since Increment 7: algorithms/blocking.py reuses these as part
+of its head_noun "concept noun" preference set, rather than inventing a
+parallel list."""
 _NUMERIC_PATTERN_HINT = re.compile(r"\\d|\[0-9\]")
 
 
@@ -105,12 +141,12 @@ def looks_temporal(tokens: tuple[str, ...], description: str | None) -> bool:
     §9.1 pseudocode's looks_temporal signature is narrower, and this
     follows the pseudocode literally)."""
     haystack = set(tokens) | set((description or "").lower().split())
-    return bool(haystack & _TEMPORAL_TOKENS)
+    return bool(haystack & TEMPORAL_TOKENS)
 
 
 def looks_monetary(tokens: tuple[str, ...], description: str | None) -> bool:
     haystack = set(tokens) | set((description or "").lower().split())
-    return bool(haystack & _MONETARY_TOKENS)
+    return bool(haystack & MONETARY_TOKENS)
 
 
 def _constraints_match_numeric_pattern(rec: C5Attributerecord) -> bool:

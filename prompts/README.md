@@ -13,6 +13,10 @@ not silently in production.
 
 - `repository-scout/1.0.0.md` - the real Repository Scout prompt (see
   `agents/repository_scout.py`).
+- `semantic-resolver/2.3.0.md` (Increment 7) - Section 7.5.1's blocks
+  transcribed verbatim (see `agents/semantic_resolver.py`). Version
+  `2.3.0` matches the spec's own literal `--- PROMPT
+  semantic-resolver/2.3.0 ---` line.
 
 Schema Interpreter has no template here - `model_tier: n/a` means no
 model call, so there is nothing to render (see

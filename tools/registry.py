@@ -135,12 +135,16 @@ TOOL_REGISTRY: dict[str, ToolDefinition] = {
             "additionalProperties": False,
         },
         output_schema={"type": "array", "items": {"type": "object"}},
-        # Comprehension family (Section 7.2) - Schema Interpreter is the
-        # only comprehension-family agent built so far; not called by
-        # either Increment 6 agent's own real behaviour, but authorised
-        # per its family so it's actually reachable once a future
-        # comprehension agent needs it.
-        authorised_agents=["schema-interpreter"],
+        # Comprehension family (Section 7.2). Semantic Resolver's own
+        # §7.5.1 spec names this tool in its declared tools list, so it's
+        # authorised here for fidelity - Increment 7's own
+        # SemanticResolverAgent doesn't call it through the gateway yet
+        # (assemble_context reads via SubstrateApi.search directly, the
+        # same "read the substrate, don't route a read through a tool
+        # call" precedent Repository Scout already set for artefact
+        # fields), same honest-but-unused status this tool already had
+        # for Repository Scout/Schema Interpreter before this increment.
+        authorised_agents=["schema-interpreter", "semantic-resolver"],
         audit_log=["caller", "attributeId", "at"],
     ),
     "acord.lookup": ToolDefinition(

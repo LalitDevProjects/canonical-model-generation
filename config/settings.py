@@ -111,6 +111,98 @@ class RelevanceConfig(BaseModel):
         return self
 
 
+class TypeCompatibilityEntry(BaseModel):
+    """One TYPE_COMPATIBILITY table row (Section 9.3). A list of {a, b,
+    score} objects, not a dict keyed by a composite type pair - YAML/JSON
+    keys must be strings, and a synthesised composite key (e.g.
+    "string,date") would be a less legible on-disk format than the spec's
+    own tabular presentation."""
+
+    a: str
+    b: str
+    score: float = Field(ge=0.0, le=1.0)
+
+
+class ClusteringConfig(BaseModel):
+    """Blocking and similarity scoring (Section 9.2-9.3). type_compatibility
+    and the ABBREVIATIONS dictionary are transcribed verbatim from the
+    spec's own pseudocode; block_top_k/block_max_size match Section 9.2's
+    build_blocks(top_k=25) default and Section 8.6's prompt-size ceiling
+    (dedupe_blocks(max_size=40)).
+
+    weights is NOT the spec's literal 0.20/0.30/0.15/0.20/0.15 - see its
+    own field description for why, and algorithms/similarity.py's module
+    docstring for the empirical verification.
+
+    link_threshold/review_band_low are also given here as platform
+    defaults, but a run's own generated.C11.RunManifest.parameters
+    ("Free-form key/number map: linkThreshold, reviewBandLow, topK, etc.")
+    is the per-run override mechanism for those two scalars specifically -
+    see algorithms/clustering.py::run_clustering()."""
+
+    weights: dict[str, float] = Field(
+        default_factory=lambda: {
+            "lexical": 0.27,
+            "embedding": 0.05,
+            "type": 0.20,
+            "constraints": 0.27,
+            "context": 0.21,
+        },
+        description="A documented, deliberate departure from the spec's "
+        "own literal 0.20/0.30/0.15/0.20/0.15 (Section 9.3). This PoC's "
+        "embedding provider (substrate/embedding.py::mock_embed, "
+        "unchanged since Increment 5 - a deterministic SHA256 hash of "
+        "the whole normalised text, carrying no semantic content by its "
+        "own docstring's admission) makes cosine(a.embedding, "
+        "b.embedding) pure noise: two attributes that are IDENTICAL in "
+        "every other feature still cap out at score 0.70 under the "
+        "spec's own weights, strictly below LINK_THRESHOLD=0.72 - no "
+        "real pair could ever auto-link. Weight is discounted to 0.05 "
+        "(not 0.0 - cosine still contributes something, just not "
+        "reliably) and redistributed across the other four features in "
+        "their original relative proportions. A deployment wiring a "
+        "real embedding model should raise this back toward the spec's "
+        "0.30 - this is a PoC default, not a claim about the algorithm "
+        "in general.",
+    )
+    type_compatibility: list[TypeCompatibilityEntry] = Field(
+        default_factory=lambda: [
+            TypeCompatibilityEntry(a="string", b="string", score=1.0),
+            TypeCompatibilityEntry(a="date", b="dateTime", score=0.85),
+            TypeCompatibilityEntry(a="string", b="date", score=0.55),
+            TypeCompatibilityEntry(a="decimal", b="integer", score=0.70),
+            TypeCompatibilityEntry(a="string", b="boolean", score=0.30),
+            TypeCompatibilityEntry(a="object", b="string", score=0.10),
+        ]
+    )
+    abbreviations: dict[str, str] = Field(
+        default_factory=lambda: {
+            "dt": "date",
+            "dttm": "dateTime",
+            "amt": "amount",
+            "nbr": "number",
+            "cd": "code",
+            "ind": "indicator",
+            "desc": "description",
+            "ref": "reference",
+            "no": "number",
+            "qty": "quantity",
+            "sinistre": "claim",
+            "police": "policy",
+        }
+    )
+    link_threshold: float = Field(default=0.72, ge=0.0, le=1.0)
+    review_band_low: float = Field(default=0.55, ge=0.0, le=1.0)
+    block_top_k: int = Field(default=25, gt=0)
+    block_max_size: int = Field(default=40, gt=0)
+
+    @model_validator(mode="after")
+    def _review_band_not_above_link_threshold(self) -> "ClusteringConfig":
+        if self.review_band_low > self.link_threshold:
+            raise ValueError("clustering.review_band_low must not exceed clustering.link_threshold")
+        return self
+
+
 def _require_hex64(value: str, field_label: str) -> None:
     if not re.fullmatch(r"[0-9a-f]{64}", value):
         raise ValueError(f"{field_label} must be exactly 64 lowercase hex characters (32 bytes)")
@@ -210,6 +302,7 @@ class PlatformSettings(BaseSettings):
     egress: EgressConfig
     feature_flags: FeatureFlags
     relevance: RelevanceConfig
+    clustering: ClusteringConfig = Field(default_factory=ClusteringConfig)
 
 
 def load_settings(yaml_path: Path | None = None) -> PlatformSettings:

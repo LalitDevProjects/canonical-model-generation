@@ -58,8 +58,22 @@ planted difficulty its own acceptance test needs:
   so they genuinely reach Repository Scout rather than being filtered
   out before the agent ever sees them. A new top-level bucket
   (`agents/`), same reasoning as prior increments.
-- **Increment 7**: synonym triple (`lossDate`/`dateOfLoss`/`dateSurvenance`),
-  homonym pair (`claimDate` meaning different things per region).
+- **Increment 7**: `clustering/{us,uk,eu}/claim.yaml` - real, small
+  OpenAPI fragments through the real `parsers/openapi.py` path (a new
+  top-level bucket, same reasoning as prior increments - the existing
+  `git/claims-{us,uk,eu}/openapi.yaml` all use uniform `lossDate` across
+  regions and are hard-count-asserted by `test_golden_corpus_e2e.py`).
+  The planted synonym triple (`lossDate`/US, `dateOfLoss`/UK,
+  `dateSurvenance`/EU, sharing a parent shape and a declared date-pattern
+  constraint) and the planted homonym (`Claim.metadata.claimDate` - UK:
+  mandatory `dateTime`, "when the record was created"; EU: optional
+  `string`, "a policy-administration reference date, unrelated to the
+  claim event itself") were both empirically score-verified via a
+  scratch script before being locked in - a real problem was caught this
+  way: an early draft let the homonym's shared context spuriously
+  cross-link it to the unrelated synonym triple, fixed by giving each
+  its own parent shape and constraint. See
+  `tests/algorithms/test_clustering_acceptance.py`.
 - Not yet claimed by any increment's acceptance test: granularity
   mismatch, enumeration divergence, obligation inversion,
   undocumented/code-only service.

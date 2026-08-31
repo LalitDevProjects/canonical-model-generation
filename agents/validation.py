@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import jsonschema
 from jsonschema.exceptions import best_match
+from referencing import Registry
 
 from contracts.validators import (
     InvariantViolation,
@@ -90,11 +91,18 @@ class WorkItemFailed(Exception):
         self.violations = violations or []
 
 
-def validate_schema(raw: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+def validate_schema(raw: dict[str, Any], schema: dict[str, Any], *, registry: Registry | None = None) -> dict[str, Any]:
     """V1. jsonschema.Draft202012Validator - the same validator class
     contracts/validators.py's own module docstring requires everywhere
-    else in this repo."""
-    validator = jsonschema.Draft202012Validator(schema)
+    else in this repo. registry is optional (Increment 6's two agents'
+    output_schema dicts have no external $ref, so it defaults to None and
+    their behaviour is unchanged) - Increment 7's Semantic Resolver
+    points output_schema at the real contracts/C6/ConceptCluster/1.0.json,
+    which $refs into common/defs.json, and needs a real registry to
+    resolve those refs (jsonschema.Draft202012Validator(schema) alone
+    would raise Unresolvable on the first $ref it hit)."""
+    validator_kwargs: dict[str, Any] = {"registry": registry} if registry is not None else {}
+    validator = jsonschema.Draft202012Validator(schema, **validator_kwargs)
     errors = list(validator.iter_errors(raw))
     if errors:
         worst = best_match(errors)

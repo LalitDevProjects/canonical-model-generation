@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from config.settings import (
+    ClusteringConfig,
     EgressConfig,
     Environment,
     FeatureFlags,
@@ -86,6 +87,40 @@ def test_relevance_config_rejects_drop_above_keep() -> None:
 def test_relevance_config_allows_drop_equal_to_keep() -> None:
     cfg = RelevanceConfig(pass1_keep=0.5, pass1_drop=0.5, domain_tokens={})
     assert cfg.pass1_drop == cfg.pass1_keep
+
+
+def test_clustering_config_loads_spec_verbatim_values() -> None:
+    settings = load_settings()
+    # weights is a documented, deliberate departure from the spec's own
+    # 0.20/0.30/0.15/0.20/0.15 - see ClusteringConfig.weights' own
+    # description. Only sum-to-1.0 and the embedding discount are asserted
+    # here; abbreviations/type_compatibility below are spec-verbatim.
+    assert abs(sum(settings.clustering.weights.values()) - 1.0) < 1e-9
+    assert settings.clustering.weights["embedding"] < 0.15
+    assert settings.clustering.abbreviations["dt"] == "date"
+    assert settings.clustering.abbreviations["sinistre"] == "claim"
+    assert settings.clustering.link_threshold == 0.72
+    assert settings.clustering.review_band_low == 0.55
+    assert settings.clustering.block_top_k == 25
+    assert settings.clustering.block_max_size == 40
+    pairs = {(e.a, e.b): e.score for e in settings.clustering.type_compatibility}
+    assert pairs[("string", "string")] == 1.0
+    assert pairs[("date", "dateTime")] == 0.85
+
+
+def test_clustering_config_rejects_review_band_above_link_threshold() -> None:
+    with pytest.raises(ValidationError):
+        ClusteringConfig(link_threshold=0.5, review_band_low=0.6)
+
+
+def test_clustering_config_allows_review_band_equal_to_link_threshold() -> None:
+    cfg = ClusteringConfig(link_threshold=0.5, review_band_low=0.5)
+    assert cfg.review_band_low == cfg.link_threshold
+
+
+def test_clustering_config_defaults_when_omitted() -> None:
+    settings = PlatformSettings.model_validate(_valid_settings_payload())
+    assert settings.clustering.link_threshold == 0.72
 
 
 def _valid_egress_payload(**overrides: object) -> dict[str, object]:

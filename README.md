@@ -39,7 +39,7 @@ increments (Section 17), in order: contracts before code, the sanitisation
 gate before any real evidence moves, deterministic components before
 probabilistic (agent) ones, coverage before emission.
 
-**Increments 1 through 6 are complete.** Increment 1 ("Skeleton and
+**Increments 1 through 7 are complete.** Increment 1 ("Skeleton and
 contracts"): repository layout, CI, `mypy --strict`, all eleven data
 contracts as JSON Schema with generated Pydantic models, cross-artefact
 invariant validators, and a fixture suite. Increment 2 ("Connectors and
@@ -61,8 +61,14 @@ runtime"): the `Agent` base contract's ten-step invocation path, a tool
 gateway with per-agent authorisation and audit, a model gateway with
 budget enforcement and a **real Anthropic API integration**, the V1-V5
 validation ladder, and two real agents (Repository Scout, Schema
-Interpreter) proven end to end. See `docs/contracts.md` and
-`docs/increments.md` for the full per-increment record.
+Interpreter) proven end to end. Increment 7 ("Clustering and
+conflicts"): a fully deterministic blocking/similarity/clustering/
+homonym-splitting/conflict-classification pipeline (zero LLM
+dependency), the Semantic Resolver agent adjudicating only the
+review-band material that pipeline sets aside, and a real agent
+evaluation harness (`eval/`) gated on Cluster F1 and homonym recall. See
+`docs/contracts.md` and `docs/increments.md` for the full
+per-increment record.
 
 A previous implementation (`archive/legacy_src/`) diverged from the spec in
 several fundamental ways (random-UUID identity instead of the spec's
@@ -84,33 +90,34 @@ canonical-model-generation/
   contracts/          C1-C11 JSON Schema 2020-12 contracts (Increment 1)
   generated/           Pydantic models generated from contracts/ - never hand-edited (Increment 1)
   config/               Platform configuration: settings.py, platform.yaml (Increments 1-2)
-  prompts/{agent}/      Versioned agent prompt templates (Increment 6 - built: repository-scout/1.0.0.md)
-  agents/               Agent runtime: Agent ABC, model gateway (real Anthropic wiring), validation ladder, Repository Scout, Schema Interpreter (Increment 6 - built)
+  prompts/{agent}/      Versioned agent prompt templates (repository-scout/1.0.0.md - I6; semantic-resolver/2.3.0.md - I7)
+  agents/               Agent runtime: Agent ABC, model gateway (real Anthropic wiring), validation ladder, Repository Scout, Schema Interpreter (I6), Semantic Resolver (I7)
   tools/                 Tool gateway: registry, authorisation/audit, real handlers for artefact.write/spec.parse/substrate.*/acord.lookup (Increment 6 - built)
   connectors/           Git/Confluence connectors, relevance filtering, corpus manifest (Increment 2 - built)
   parsers/               OpenAPI/WSDL/XSD/Avro parsers, type normalisation (Increment 3 - built; code_inference.py deferred)
   gate/                  Sanitisation ladder, tokenisation, egress ledger (Increment 4 - built)
   substrate/             Chunking, embeddings, vector + concept graph, substrate-api (Increment 5 - built, real Postgres + pgvector)
-  pipeline/               Orchestration: run store persistence, journal (Increments 2-6 - built), state machine (out of PoC scope - see docs/increments.md)
-  algorithms/            Attribute profiling (Increment 3 - built); blocking, similarity, clustering, ACORD alignment, coverage (Increments 7-8)
+  pipeline/               Orchestration: run store persistence, journal, triage export (Increments 2-7 - built), state machine (out of PoC scope - see docs/increments.md)
+  algorithms/            Attribute profiling (I3); blocking, similarity, graph, conflict classification, clustering (I7 - built, zero LLM dependency); ACORD alignment, coverage (I8)
   mapping/               Mapping DSL: grammar, transform library, round-trip tests (Increment 9)
   emit/                   Schema/OpenAPI emitters, logical model export, registry (Increment 9)
   api/                    Internal service APIs (run control, registry, workshop) (Increment 12)
-  golden/                Golden corpus, built incrementally (Increments 2-6 - see golden/README.md)
-  eval/                  Agent evaluation harness (deferred - no spec-given thresholds exist yet for Repository Scout/Schema Interpreter; see docs/increments.md)
+  golden/                Golden corpus, built incrementally (Increments 2-7 - see golden/README.md)
+  eval/                  Agent evaluation harness: thresholds, worst-of-5 gating (Increment 7 - built, for Semantic Resolver)
   infra/                 docker-compose.yml (local Postgres + pgvector, Increment 5)
   docs/                   Detailed documentation, updated alongside contract/agent changes
   tests/
-    agents/                Agent ABC, model gateway, prompt render, validation ladder, Repository Scout, Schema Interpreter, Increment 6 acceptance tests
-    algorithms/            Profiling tests
+    agents/                Agent ABC, model gateway, prompt render, validation ladder, Repository Scout, Schema Interpreter, Semantic Resolver, I6/I7 acceptance tests
+    algorithms/            Profiling, blocking, similarity, conflict, clustering tests, I7 acceptance test
     connectors/            Connector, relevance-filter, manifest, and golden-corpus e2e tests
     contracts/            Schema + generated-model fixture and invariant tests
+    eval/                  Eval harness tests (worst-of-5 gating, real-model llm test)
     fixtures/              Per-contract positive/negative fixtures, invariant bundles
     gate/                  Detectors, tokenisation, policy, ledger, Increment 4 acceptance tests
     substrate/             Chunking, embedding, graph, search, ingest, api, Increment 5 acceptance tests (mostly pytest.mark.db)
     tools/                 Tool gateway authorisation/schema/journalling tests
     parsers/               Parser, type-normalisation, and router tests
-    pipeline/              Run-store tests
+    pipeline/              Run-store tests (incl. triage export)
     unit/                  Unit tests (validators, config)
   archive/legacy_src/      Pre-rebuild implementation, retained for reference/cherry-picking
   .github/workflows/       CI
@@ -175,7 +182,7 @@ CI fails the build if `generated/` doesn't match what
 pytest
 
 # Run with coverage report (fails under 85%, per pyproject.toml)
-pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov-report=term-missing
+pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov=eval --cov-report=term-missing
 
 # Run just the contract/fixture tests
 pytest tests/contracts/
@@ -196,6 +203,13 @@ pytest tests/substrate/test_substrate_acceptance.py
 # Run just the Increment 6 acceptance test (denied tool call, retry-then-escalate, injection resistance)
 pytest tests/agents/test_agent_runtime_acceptance.py
 
+# Run just the Increment 7 acceptance test (planted synonyms cluster, planted homonym doesn't merge) -
+# zero LLM, zero DB
+pytest tests/algorithms/test_clustering_acceptance.py
+
+# Run the Increment 7 eval-harness tests (worst-of-5 gating arithmetic)
+pytest tests/eval/
+
 # Run the tests requiring a real Anthropic API call (skip cleanly without ANTHROPIC_API_KEY)
 pytest -m llm
 ```
@@ -203,9 +217,9 @@ pytest -m llm
 ### Development
 
 ```bash
-mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools tests
-black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ tests/ scripts/
-isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ tests/ scripts/
+mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools eval tests
+black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ tests/ scripts/
+isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ tests/ scripts/
 ```
 
 ## Configuration
@@ -394,5 +408,5 @@ See `CONTRIBUTING.md` for development guidelines.
 
 ---
 
-**Status**: Draft for Technical Review (v0.1) - Increments 1-6 of 9 (PoC Build Guide, Section 17) complete
+**Status**: Draft for Technical Review (v0.1) - Increments 1-7 of 9 (PoC Build Guide, Section 17) complete
 **Last Updated**: 31 August 2026

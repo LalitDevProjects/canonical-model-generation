@@ -1,0 +1,49 @@
+openapi: "3.1.0"
+info:
+  title: Claims Attributes (EU) - Clustering fixtures
+  version: "1.0.0"
+  description: >
+    Increment 7 planted difficulty: dateSurvenance is the third member of
+    the synonym triple ("date of loss occurrence" in French-flavoured EU
+    terminology). metadata.claimDate is the other half of the planted
+    homonym pair - here it means a reference date on the policy
+    endorsement record, unrelated to the claim event itself: optional,
+    a plain string, not a dateTime. Same nominal name and parent shape as
+    the UK's metadata.claimDate, genuinely different meaning - exactly
+    what the homonym-splitting logic must catch despite the naive
+    similarity score clearing LINK_THRESHOLD on name/context alone.
+paths: {}
+components:
+  schemas:
+    Claim:
+      type: object
+      required: [claimId, dateSurvenance, claimant, status, metadata]
+      properties:
+        claimId:
+          type: string
+          description: Unique claim identifier.
+        dateSurvenance:
+          type: string
+          format: date
+          pattern: "^\\d{4}-\\d{2}-\\d{2}"
+          description: Date the loss occurred.
+        claimant:
+          type: string
+          description: Name of the person filing the claim.
+        status:
+          type: string
+          enum: [OPEN, CLOSED]
+        metadata:
+          type: object
+          required: [recordedBy, recordedAt]
+          properties:
+            claimDate:
+              type: string
+              pattern: "^\\d{4}$"
+              description: Reference date on the policy endorsement record - unrelated to the claim event itself.
+            recordedBy:
+              type: string
+              description: The user or system that created the claim record.
+            recordedAt:
+              type: string
+              description: Timestamp of record creation.

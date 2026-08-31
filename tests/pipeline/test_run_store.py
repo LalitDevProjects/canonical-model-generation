@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 from generated.C4.CorpusManifest._1_0 import C4Corpusmanifest
 from generated.C5.AttributeRecord._1_0 import C5Attributerecord
 from generated.C11.JournalEvent._1_0 import C11Journalevent
-from pipeline.run_store import RunStore
+from pipeline.run_store import RunStore, TriageEntry
 
 
 def _manifest(run_id: UUID) -> C4Corpusmanifest:
@@ -149,3 +149,44 @@ class TestAppendJournalEvent:
         reread = C11Journalevent.model_validate(json.loads(line))
         assert reread.seq == 0
         assert reread.kind == "stage.transition"
+
+
+class TestAppendAndReadTriageEntries:
+    def test_append_creates_the_expected_path(self, tmp_path: Path) -> None:
+        store = RunStore(base_path=tmp_path)
+        run_id = uuid4()
+        entry = TriageEntry(kind="review-pair", reason="score in review band", member_attribute_ids=("a", "b"), score=0.6)
+        destination = store.append_triage_entry(run_id, entry)
+        assert destination == tmp_path / str(run_id) / "S4" / "triage.jsonl"
+        assert destination.is_file()
+
+    def test_read_with_no_entries_returns_empty_list(self, tmp_path: Path) -> None:
+        store = RunStore(base_path=tmp_path)
+        assert store.read_triage_entries(uuid4()) == []
+
+    def test_read_after_append_round_trips(self, tmp_path: Path) -> None:
+        store = RunStore(base_path=tmp_path)
+        run_id = uuid4()
+        entry = TriageEntry(
+            kind="review-pair",
+            reason="score in review band",
+            member_attribute_ids=("attr://us/art-1/Claim.a", "attr://uk/art-2/Claim.b"),
+            score=0.61,
+            features={"lexical": 0.5},
+        )
+        store.append_triage_entry(run_id, entry)
+        reread = store.read_triage_entries(run_id)
+        assert reread == [entry]
+
+    def test_repeated_appends_accumulate(self, tmp_path: Path) -> None:
+        store = RunStore(base_path=tmp_path)
+        run_id = uuid4()
+        store.append_triage_entry(run_id, TriageEntry(kind="review-pair", reason="r1", member_attribute_ids=("a", "b")))
+        store.append_triage_entry(
+            run_id, TriageEntry(kind="agent-escalation", reason="homonym", member_attribute_ids=("c",), cluster_payload={"x": 1})
+        )
+        reread = store.read_triage_entries(run_id)
+        assert len(reread) == 2
+        assert reread[0].kind == "review-pair"
+        assert reread[1].kind == "agent-escalation"
+        assert reread[1].cluster_payload == {"x": 1}

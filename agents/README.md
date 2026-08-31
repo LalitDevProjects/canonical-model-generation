@@ -15,7 +15,11 @@ two real agents proving it end to end.
   `Violation`/`Guardrail` shapes and every ladder-related exception type
   - the lower layer `base.py`/`deterministic.py` build on, specifically
   to avoid a circular import (a `Guardrail`'s own check callback needs a
-  `RunContext`, defined in `base.py`).
+  `RunContext`, defined in `base.py`). `validate_schema()` gained an
+  optional `registry: Registry | None` kwarg at Increment 7 (default
+  `None` preserves Increment 6's two agents' exact behaviour) - needed
+  to resolve `contracts/C6/ConceptCluster/1.0.json`'s external `$ref`s
+  into `common/defs.json` for Semantic Resolver's own output_schema.
 - `model_gateway.py` - `Budget` (transcribed from Section 7.6, one real
   bug fixed), `ModelGateway` with a real Anthropic-backed provider
   (`anthropic_provider()`) and an injectable one for tests
@@ -36,8 +40,24 @@ two real agents proving it end to end.
   `spec.parse` tool (not called directly), so the same authorisation/
   audit path a model-calling agent's tool use goes through also covers
   this deterministic one.
+- `semantic_resolver.py` (Increment 7) - Semantic Resolver (Section
+  7.5.1), adjudicating only the review-band material
+  `algorithms/clustering.py::run_clustering()` sets aside (the
+  deterministic pipeline decides every confidently-linked pair on its
+  own) - the same "deterministic decides, agent adjudicates the
+  uncertain band" shape Repository Scout already established for
+  relevance filtering. `output_schema` is the real, unmodified
+  `contracts/C6/ConceptCluster/1.0.json` (loaded from disk, not
+  hand-copied), with a `schema_registry` built once at import time.
+  Five real, code-checkable guardrails (G1-G5, transcribed verbatim
+  from the spec). `make_semantic_resolver_adjudicator(ctx)` is a
+  factory - the same shape as `make_repository_scout_classifier` -
+  grouping review-band pairs into connected components, one `WorkItem`
+  per component, persisting `AWAIT_TRIAGE` escalations to the same
+  triage sink the deterministic pipeline uses.
 
-See `docs/increments.md` for what Increment 6 built and verified
+See `docs/increments.md` for what each increment built and verified
 (including the real Anthropic API decision and the `tool.denied`
-contract gap it closed), and `tools/README.md` for the tool gateway
+contract gap Increment 6 closed, and Increment 7's empirically-found
+clustering-weights fix), and `tools/README.md` for the tool gateway
 these agents reach every external capability through.

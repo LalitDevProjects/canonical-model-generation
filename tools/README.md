@@ -11,6 +11,12 @@ against schema, and audits every call."
   named in Section 7.2's table. Authorisation is by explicit agent-id
   list, except `authorised_agents="*"` for the two tools the spec's own
   summary table marks "All families" (`artefact.write`, `substrate.query`).
+  `substrate.neighbours` gained `"semantic-resolver"` at Increment 7
+  (Section 7.5.1's own tools list names it, though the real
+  `SemanticResolverAgent` doesn't call it through the gateway yet -
+  `assemble_context` reads via `SubstrateApi.search` directly, the same
+  precedent Repository Scout already set for reading fields without a
+  tool call).
 - `gateway.py` - `ToolGateway.call(agent_id, tool_name, args, run_id)`:
   authorisation check (denies + journals `tool.denied` on failure) ->
   argument schema validation -> the real handler -> result schema

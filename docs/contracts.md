@@ -46,7 +46,7 @@ agent-runtime code was written.
 | C3 | EgressLedgerEntry | `contracts/C3/EgressLedgerEntry/1.0.json` | Transcribed from the `append_ledger()` function body (Section 5.5) |
 | C4 | CorpusManifest | `contracts/C4/CorpusManifest/1.0.json` | Transcribed verbatim (Section 3.4). `exclusions` key is required (may be empty) |
 | C5 | AttributeRecord | `contracts/C5/AttributeRecord/1.0.json` | Transcribed verbatim (Section 3.3) - the pivot contract. `typeDetail` tightened at Increment 3 (see table below) |
-| C6 | ConceptCluster | `contracts/C6/ConceptCluster/1.0.json` | Full schema designed from the spec's abridged illustrative example (Section 3.5) |
+| C6 | ConceptCluster | `contracts/C6/ConceptCluster/1.0.json` | Full schema designed from the spec's abridged illustrative example (Section 3.5). Genuinely populated as of Increment 7 (`algorithms/clustering.py::build_cluster`, `agents/semantic_resolver.py`) - every field the real producers needed already existed; no schema change was required |
 | C7 | AlignmentRecord | `contracts/C7/AlignmentRecord/1.0.json` | Renamed from an earlier hand-written `Alignment` to match the spec's naming. `verdict=fit` requires a non-null `acordRef` (anti-hallucination guardrail, G1) via an `if`/`then` conditional |
 | C8 | CanonicalCandidate | `contracts/C8/CanonicalCandidate/1.0.json` | Renamed from an earlier hand-written `Candidate` |
 | C9 | CoverageReport | `contracts/C9/CoverageReport/1.0.json` | Transcribed from the `coverage()` function body (Section 9.8) |
@@ -64,7 +64,7 @@ than one document in hand at once, so they're enforced by
 | Invariant | Rule | Function |
 |---|---|---|
 | I1 | Every `AttributeRecord.evidenceRefs` entry resolves to an artefact in the run's `CorpusManifest` | `check_i1_evidence_resolvable` |
-| I2 | Every `ConceptCluster` member references an `AttributeRecord` from the same run | `check_i2_cluster_members_same_run` |
+| I2 | Every `ConceptCluster` member references an `AttributeRecord` from the same run | `check_i2_cluster_members_same_run` (genuinely exercised as of Increment 7 - Increment 6's own V5 dispatch onto it had no ConceptCluster producer yet) |
 | I3 | Every `CanonicalCandidate` traces through a `ConceptCluster` to a real `AttributeRecord` | `check_i3_candidate_traces_to_attribute` |
 | I4 | A scored attribute contributes to `CoverageReport` only with both evidence and a named ratifying SME | `check_i4_coverage_scored_attributes_evidenced` |
 | I5 | Every `MappingSpec` entry carries exactly one of `transform` or `disposition` | `check_i5_mapping_entries_have_disposition` |
@@ -78,6 +78,20 @@ enforces but the *generated Pydantic models do not enforce on their own*.
 Constructing a generated model successfully is not proof a document
 satisfies its schema - any code that writes or accepts C1-C11 documents
 must run both validation paths.
+
+## `unwrap_ref` (promoted to public at Increment 7)
+
+`contracts/validators.py::unwrap_ref` (renamed from `_unwrap`) unwraps
+the RootModel wrapper `datamodel-code-generator` leaves on `$ref`-typed
+scalar fields used *inside* a list (e.g. `evidenceRefs: list[EvidenceRef]`)
+or an `anyOf` - a bare top-level `$ref` property collapses to a plain
+constrained `str`, but the same `$def` used in those two positions stays
+a `RootModel[str]` instance whose `str()` is `"root='...'"`, not the
+underlying value. `algorithms/clustering.py::build_cluster` needed this
+directly (assembling a `ConceptCluster`'s own `evidenceRefs` from its
+members' real `AttributeRecord.evidenceRefs`), the same class of
+cross-module reuse as `artefact_id_from_evref`'s own Increment 6
+promotion.
 
 ## C5 `typeDetail` (tightened at Increment 3)
 

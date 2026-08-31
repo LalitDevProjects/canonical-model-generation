@@ -7,6 +7,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import pytest
+from referencing import Registry, Resource
 
 from generated.C11.RunManifest._1_0 import Pins
 
@@ -129,6 +130,52 @@ class TestInvokeHappyPath:
         agent.invoke(_item(), ctx)
 
         assert "item-1" in provider.calls[0]
+
+
+_EXTERNAL_DEFS = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.invalid/agents-test-defs.json",
+    "$defs": {"name": {"type": "string"}},
+}
+_SCHEMA_WITH_EXTERNAL_REF = {
+    "type": "object",
+    "required": ["value"],
+    "properties": {"value": {"$ref": "https://example.invalid/agents-test-defs.json#/$defs/name"}},
+    "additionalProperties": False,
+}
+
+
+class _FakeAgentWithExternalSchemaRef(_FakeAgent):
+    """Increment 7: proves Agent.schema_registry is actually threaded
+    through to validate_schema - output_schema here has an external $ref
+    that only resolves if the registry is really used, the same shape
+    Semantic Resolver's real contracts/C6/ConceptCluster/1.0.json needs."""
+
+    output_schema = _SCHEMA_WITH_EXTERNAL_REF
+
+    def __init__(self, prompt_root: Path, *, registry: Registry) -> None:
+        super().__init__(prompt_root)
+        self.schema_registry = registry
+
+
+class TestSchemaRegistry:
+    def test_default_agent_has_no_registry(self, tmp_path: Path) -> None:
+        agent = _FakeAgent(tmp_path)
+        assert agent.schema_registry is None
+
+    def test_registry_is_used_to_resolve_an_external_ref_in_output_schema(self, tmp_path: Path) -> None:
+        root = _write_template(tmp_path)
+        registry = Registry().with_resource(
+            "https://example.invalid/agents-test-defs.json", Resource.from_contents(_EXTERNAL_DEFS)
+        )
+        provider = _ScriptedProvider(['{"value": "hello"}'])
+        agent = _FakeAgentWithExternalSchemaRef(root, registry=registry)
+        ctx = _make_ctx(tmp_path, provider=provider)
+
+        result = agent.invoke(_item(), ctx)
+
+        assert result.outcome == "ok"
+        assert result.output == {"value": "hello"}
 
 
 class TestSchemaValidationRetry:

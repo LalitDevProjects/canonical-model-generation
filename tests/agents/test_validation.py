@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from referencing import Registry, Resource
 
 from agents.validation import (
     Guardrail,
@@ -29,6 +30,32 @@ class TestValidateSchema:
         schema = {"type": "object", "required": ["x"]}
         with pytest.raises(SchemaValidationFailed):
             validate_schema({}, schema)
+
+    def test_registry_none_default_matches_no_registry_behaviour(self) -> None:
+        schema = {"type": "object", "required": ["x"], "properties": {"x": {"type": "string"}}}
+        output = {"x": "hello"}
+        assert validate_schema(output, schema, registry=None) == output
+
+    def test_registry_resolves_external_ref(self) -> None:
+        defs = {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://example.invalid/defs.json", "$defs": {"name": {"type": "string"}}}
+        schema = {
+            "type": "object",
+            "required": ["x"],
+            "properties": {"x": {"$ref": "https://example.invalid/defs.json#/$defs/name"}},
+        }
+        registry = Registry().with_resource("https://example.invalid/defs.json", Resource.from_contents(defs))
+        assert validate_schema({"x": "hello"}, schema, registry=registry) == {"x": "hello"}
+
+    def test_registry_still_rejects_invalid_output(self) -> None:
+        defs = {"$schema": "https://json-schema.org/draft/2020-12/schema", "$id": "https://example.invalid/defs.json", "$defs": {"name": {"type": "string"}}}
+        schema = {
+            "type": "object",
+            "required": ["x"],
+            "properties": {"x": {"$ref": "https://example.invalid/defs.json#/$defs/name"}},
+        }
+        registry = Registry().with_resource("https://example.invalid/defs.json", Resource.from_contents(defs))
+        with pytest.raises(SchemaValidationFailed):
+            validate_schema({"x": 42}, schema, registry=registry)
 
 
 class TestValidateReference:

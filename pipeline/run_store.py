@@ -17,7 +17,9 @@ from C11's own manifest.json - following the per-stage-folder convention
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 from uuid import UUID
 
 from generated.C4.CorpusManifest._1_0 import C4Corpusmanifest
@@ -25,6 +27,25 @@ from generated.C5.AttributeRecord._1_0 import C5Attributerecord
 from generated.C11.JournalEvent._1_0 import C11Journalevent
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+@dataclass(frozen=True)
+class TriageEntry:
+    """The concrete "triage export" artefact Increment 7 builds (Section
+    9.4's emit_review_queue: review-band pairs are "not discarded: they
+    become triage input") - NOT the full Section 12.1 run-control API or
+    Section 8.4 AWAIT_* checkpoint machinery, which stay out of scope
+    this increment (matching Increment 6's own orchestrator-deferral).
+    One sink for both the deterministic review queue (kind="review-pair")
+    and the Semantic Resolver agent's own AWAIT_TRIAGE escalations
+    (kind="agent-escalation")."""
+
+    kind: Literal["review-pair", "agent-escalation"]
+    reason: str
+    member_attribute_ids: tuple[str, ...]
+    score: float | None = None
+    features: dict[str, float] | None = None
+    cluster_payload: dict[str, object] | None = None
 
 
 class RunStore:
@@ -95,6 +116,46 @@ class RunStore:
         with path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(event.model_dump(mode="json"), sort_keys=True) + "\n")
         return path
+
+    def append_triage_entry(self, run_id: UUID, entry: TriageEntry) -> Path:
+        """`run-store/{runId}/S4/triage.jsonl` - append-only, matching
+        append_journal_event's shape: triage entries accumulate both from
+        the deterministic review queue and from later Semantic Resolver
+        escalations, not computed once and sealed like write_attributes."""
+        path = self.run_dir(run_id) / "S4" / "triage.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "kind": entry.kind,
+            "reason": entry.reason,
+            "memberAttributeIds": list(entry.member_attribute_ids),
+            "score": entry.score,
+            "features": entry.features,
+            "clusterPayload": entry.cluster_payload,
+        }
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
+        return path
+
+    def read_triage_entries(self, run_id: UUID) -> list[TriageEntry]:
+        path = self.run_dir(run_id) / "S4" / "triage.jsonl"
+        if not path.exists():
+            return []
+        entries: list[TriageEntry] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line:
+                continue
+            raw = json.loads(line)
+            entries.append(
+                TriageEntry(
+                    kind=raw["kind"],
+                    reason=raw["reason"],
+                    member_attribute_ids=tuple(raw["memberAttributeIds"]),
+                    score=raw.get("score"),
+                    features=raw.get("features"),
+                    cluster_payload=raw.get("clusterPayload"),
+                )
+            )
+        return entries
 
     def next_journal_seq(self, run_id: UUID) -> int:
         """The next monotonically-increasing seq value for this run's

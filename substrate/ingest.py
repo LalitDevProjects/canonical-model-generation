@@ -56,9 +56,13 @@ def _parse_or_skip(content: bytes, artefact: C1Sourceartefact, run_id: UUID) -> 
         return []
 
 
-def _attribute_embedding_text(record: C5Attributerecord) -> str:
+def attribute_embedding_text(record: C5Attributerecord) -> str:
     """"Embedding neighbourhood over name + description" (Section 6.4's
-    neighbours() docstring)."""
+    neighbours() docstring). Public since Increment 7:
+    algorithms/similarity.py recomputes the same embedding locally
+    (algorithms/ has no DB dependency), and must use the exact same text
+    basis this module used when the vector was first stored, or the two
+    would silently diverge."""
     description = record.semantics.description if record.semantics else None
     return f"{record.localName} {description}" if description else record.localName
 
@@ -108,7 +112,7 @@ def ingest_artefacts(
                 write_edge(conn, from_id, to_id, edge_type)
                 edges_written += 1
 
-                attribute_vector = embed_fn(_attribute_embedding_text(record), dimensions)
+                attribute_vector = embed_fn(attribute_embedding_text(record), dimensions)
                 conn.execute(
                     """
                     INSERT INTO attribute_embeddings (attribute_id, run_id, embedding, embedding_model_id)

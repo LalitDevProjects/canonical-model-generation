@@ -1,0 +1,29 @@
+openapi: "3.1.0"
+info:
+  title: Claims Attributes (US) - Clustering fixtures
+  version: "1.0.0"
+  description: >
+    Increment 7 planted difficulty: lossDate is one member of the
+    synonym triple (lossDate/dateOfLoss/dateSurvenance) the deterministic
+    clustering pipeline must merge into one cluster.
+paths: {}
+components:
+  schemas:
+    Claim:
+      type: object
+      required: [claimId, lossDate, claimant, status]
+      properties:
+        claimId:
+          type: string
+          description: Unique claim identifier.
+        lossDate:
+          type: string
+          format: date
+          pattern: "^\\d{4}-\\d{2}-\\d{2}"
+          description: Date the loss occurred.
+        claimant:
+          type: string
+          description: Name of the person filing the claim.
+        status:
+          type: string
+          enum: [OPEN, CLOSED]

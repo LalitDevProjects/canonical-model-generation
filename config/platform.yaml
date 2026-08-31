@@ -66,6 +66,51 @@ relevance:
     - application/xml
     - application/vnd.apache.avro+json
 
+# Blocking and similarity scoring (Section 9.2-9.3). type_compatibility
+# and abbreviations are transcribed verbatim from the spec's own
+# pseudocode. link_threshold/review_band_low are platform defaults; a
+# run's own RunManifest.parameters (linkThreshold/reviewBandLow)
+# overrides them per run - see algorithms/clustering.py.
+#
+# weights is NOT the spec's literal 0.20/0.30/0.15/0.20/0.15 - this PoC's
+# mock embedding provider (substrate/embedding.py) carries no real
+# semantic signal, and the spec's own 0.30 embedding weight makes
+# LINK_THRESHOLD structurally unreachable even for a perfect match on
+# every other feature (see config/settings.py::ClusteringConfig.weights'
+# own description for the full reasoning). A deployment with a real
+# embedding model should raise embedding back toward 0.30.
+clustering:
+  weights:
+    lexical: 0.27
+    embedding: 0.05
+    type: 0.20
+    constraints: 0.27
+    context: 0.21
+  type_compatibility:
+    - {a: string, b: string, score: 1.0}
+    - {a: date, b: dateTime, score: 0.85}
+    - {a: string, b: date, score: 0.55}
+    - {a: decimal, b: integer, score: 0.70}
+    - {a: string, b: boolean, score: 0.30}
+    - {a: object, b: string, score: 0.10}
+  abbreviations:
+    dt: date
+    dttm: dateTime
+    amt: amount
+    nbr: number
+    cd: code
+    ind: indicator
+    desc: description
+    ref: reference
+    "no": number
+    qty: quantity
+    sinistre: claim
+    police: policy
+  link_threshold: 0.72
+  review_band_low: 0.55
+  block_top_k: 25
+  block_max_size: 40
+
 # Dotted spelling matches the spec's own Section 15.3 flag names; translated
 # to snake_case by FeatureFlags.from_dotted (config/settings.py) before
 # PlatformSettings is constructed.
