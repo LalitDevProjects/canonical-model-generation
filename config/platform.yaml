@@ -50,6 +50,7 @@ relevance:
     - application/vnd.oai.openapi
     - application/schema+json
     - application/xml
+    - application/vnd.apache.avro+json
 
 # Dotted spelling matches the spec's own Section 15.3 flag names; translated
 # to snake_case by FeatureFlags.from_dotted (config/settings.py) before

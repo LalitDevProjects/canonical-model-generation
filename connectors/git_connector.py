@@ -28,6 +28,7 @@ _MEDIA_TYPES = {
     ".wsdl": "application/xml",
     ".xml": "application/xml",
     ".md": "text/markdown",
+    ".avsc": "application/vnd.apache.avro+json",
 }
 
 

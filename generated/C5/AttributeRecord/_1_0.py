@@ -4,12 +4,54 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...common import defs
+
+
+class TypeDetail(BaseModel):
+    """
+    Tightened at Increment 3 (parsers/type_normalisation.py, Section 4.3/4.4). One shape shared across all dataTypes; every sub-field is optional and only populated by the parser idiom that produces it - see docs/contracts.md's typeDetail table.
+    """
+
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    bits: int | None = None
+    """
+    integer: xs:int(32)/xs:long(64)/Avro int(32)/long(64) bit width.
+    """
+    offsetRequired: bool | None = None
+    """
+    dateTime: whether the source format mandates a UTC offset.
+    """
+    refTarget: str | None = None
+    """
+    reference: the target this reference points to (xs:IDREF target, $ref pointer, Avro named-type reference).
+    """
+    choiceGroup: str | None = None
+    """
+    xs:choice: shared identifier for every branch of one choice group (Section 4.4).
+    """
+    substitutionHead: bool | None = None
+    """
+    true on the head element of an XSD substitution group.
+    """
+    substitutionOf: str | None = None
+    """
+    On a substitution-group member: the attributeId of the head element it substitutes for.
+    """
+    explicitNull: bool | None = None
+    """
+    XSD nillable="true". MUST NOT be conflated with cardinality's 0..1 (minOccurs="0").
+    """
+    inheritedFrom: str | None = None
+    """
+    xs:extension: the base type localName this attribute was flattened in from, when the region did not declare it directly.
+    """
 
 
 class Source(StrEnum):
@@ -93,9 +135,9 @@ class C5Attributerecord(BaseModel):
     """
     localName: str
     dataType: defs.DataType
-    typeDetail: dict[str, Any] | None = None
+    typeDetail: TypeDetail | None = None
     """
-    Free-form at Increment 1 (format/precision/itemType/refTarget). Tightened once Increment 3 (parsers/type normalisation) defines exact per-dataType shapes.
+    Tightened at Increment 3 (parsers/type_normalisation.py, Section 4.3/4.4). One shape shared across all dataTypes; every sub-field is optional and only populated by the parser idiom that produces it - see docs/contracts.md's typeDetail table.
     """
     cardinality: defs.Cardinality
     obligation: defs.Obligation

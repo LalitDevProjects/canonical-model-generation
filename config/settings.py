@@ -89,6 +89,7 @@ class RelevanceConfig(BaseModel):
             "application/vnd.oai.openapi",
             "application/schema+json",
             "application/xml",
+            "application/vnd.apache.avro+json",
         ]
     )
 

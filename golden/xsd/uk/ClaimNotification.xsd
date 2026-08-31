@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="urn:claims:uk:notification"
+           xmlns:tns="urn:claims:uk:notification"
+           elementFormDefault="qualified">
+
+  <!-- Substitution group: BaseNotificationEvent (head) / UrgentNotificationEvent
+       (member). UrgentNotificationEvent also extends BaseNotificationEventType,
+       exercising xs:extension flattening (inheritedFrom) at the same time. -->
+  <xs:element name="BaseNotificationEvent" type="tns:BaseNotificationEventType"/>
+  <xs:element name="UrgentNotificationEvent" substitutionGroup="tns:BaseNotificationEvent" type="tns:UrgentNotificationEventType"/>
+
+  <xs:complexType name="BaseNotificationEventType">
+    <xs:sequence>
+      <xs:element name="eventId" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="UrgentNotificationEventType">
+    <xs:complexContent>
+      <xs:extension base="tns:BaseNotificationEventType">
+        <xs:sequence>
+          <xs:element name="receivedAt" type="xs:dateTime"/>
+          <xs:element name="escalationReason" type="xs:string"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <!-- Main FNOL notification. Exercises: untyped date (notificationDate),
+       attribute-vs-element normalisation (claimReference attribute vs
+       claimReferenceCode element), nillable vs minOccurs (settlementNote
+       vs priorClaimReference, kept independent), and the notifier
+       xs:choice group (three branches, all conditional). -->
+  <xs:element name="ClaimNotification">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="notificationDate" type="xs:string">
+          <xs:annotation>
+            <xs:documentation>Date the notification was received.</xs:documentation>
+          </xs:annotation>
+        </xs:element>
+        <xs:element name="claimReferenceCode" type="xs:string"/>
+        <xs:element name="settlementNote" type="xs:string" nillable="true"/>
+        <xs:element name="priorClaimReference" type="xs:string" minOccurs="0"/>
+        <xs:choice id="notifier">
+          <xs:element name="brokerNotifier" type="tns:BrokerNotifierType"/>
+          <xs:element name="policyholderNotifier" type="tns:PolicyholderNotifierType"/>
+          <xs:element name="thirdPartyNotifier" type="tns:ThirdPartyNotifierType"/>
+        </xs:choice>
+      </xs:sequence>
+      <xs:attribute name="claimReference" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="BrokerNotifierType">
+    <xs:sequence>
+      <xs:element name="brokerReference" type="xs:string"/>
+      <xs:element name="brokerName" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="PolicyholderNotifierType">
+    <xs:sequence>
+      <xs:element name="policyholderId" type="xs:string"/>
+      <xs:element name="contactPhone" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="ThirdPartyNotifierType">
+    <xs:sequence>
+      <xs:element name="thirdPartyName" type="xs:string"/>
+      <xs:element name="relationshipToInsured" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

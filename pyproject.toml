@@ -18,15 +18,15 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# Increment 1 scope only. Later increments add dependencies as their own
-# scope requires them (connectors/parsers at I2-I3, agent/model gateway at
-# I6, algorithms at I7-I8, mapping DSL at I9, observability at I14) rather
-# than front-loading unused packages now.
+# Scoped to what each increment actually needs (connectors/parsers at
+# I2-I3, agent/model gateway at I6, algorithms at I7-I8, mapping DSL at
+# I9, observability at I14) rather than front-loading unused packages.
 dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "pyyaml>=6.0",
     "jsonschema>=4.18",
+    "lxml>=5.0,<6.0",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +37,7 @@ dev = [
     "mypy>=1.8",
     "types-PyYAML>=6.0",
     "types-jsonschema>=4.18",
+    "lxml-stubs>=0.5",
     "datamodel-code-generator>=0.76,<0.77",
     "black>=23.7",
     "isort>=5.12",
@@ -48,7 +49,7 @@ Homepage = "https://github.com/example/canonical-model-generation"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*"]
+include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*", "parsers*", "algorithms*"]
 
 [tool.black]
 line-length = 100
@@ -102,7 +103,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["generated", "contracts", "config", "connectors", "pipeline"]
+source = ["generated", "contracts", "config", "connectors", "pipeline", "parsers", "algorithms"]
 omit = [
     "*/tests/*",
     "generated/py.typed",

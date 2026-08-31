@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "ClaimEvent",
+  "namespace": "us.claims.events",
+  "doc": "Corroborating evidence only in wave 1 (Section 2.3) - this schema is a thin, best-effort source, not a primary contract.",
+  "fields": [
+    { "name": "claimId", "type": "string" },
+    { "name": "lossDate", "type": { "type": "int", "logicalType": "date" } },
+    {
+      "name": "reserveAmount",
+      "type": { "type": "bytes", "logicalType": "decimal", "precision": 12, "scale": 2 }
+    },
+    { "name": "status", "type": "string" }
+  ]
+}

@@ -26,7 +26,7 @@ spec gives) to catch structurally malformed URIs at schema-validation time.
 | C2 | SanitisationRecord | `contracts/C2/SanitisationRecord/1.0.json` | **Interpreted, not verbatim spec** - no JSON Schema or exhaustive field list exists in the spec; synthesized from Section 5 prose. Revisit at Increment 4. |
 | C3 | EgressLedgerEntry | `contracts/C3/EgressLedgerEntry/1.0.json` | Transcribed from the `append_ledger()` function body (Section 5.5) |
 | C4 | CorpusManifest | `contracts/C4/CorpusManifest/1.0.json` | Transcribed verbatim (Section 3.4). `exclusions` key is required (may be empty) |
-| C5 | AttributeRecord | `contracts/C5/AttributeRecord/1.0.json` | Transcribed verbatim (Section 3.3) - the pivot contract |
+| C5 | AttributeRecord | `contracts/C5/AttributeRecord/1.0.json` | Transcribed verbatim (Section 3.3) - the pivot contract. `typeDetail` tightened at Increment 3 (see table below) |
 | C6 | ConceptCluster | `contracts/C6/ConceptCluster/1.0.json` | Full schema designed from the spec's abridged illustrative example (Section 3.5) |
 | C7 | AlignmentRecord | `contracts/C7/AlignmentRecord/1.0.json` | Renamed from an earlier hand-written `Alignment` to match the spec's naming. `verdict=fit` requires a non-null `acordRef` (anti-hallucination guardrail, G1) via an `if`/`then` conditional |
 | C8 | CanonicalCandidate | `contracts/C8/CanonicalCandidate/1.0.json` | Renamed from an earlier hand-written `Candidate` |
@@ -59,6 +59,23 @@ enforces but the *generated Pydantic models do not enforce on their own*.
 Constructing a generated model successfully is not proof a document
 satisfies its schema - any code that writes or accepts C1-C11 documents
 must run both validation paths.
+
+## C5 `typeDetail` (tightened at Increment 3)
+
+`typeDetail` was fully free-form at Increment 1; Increment 3's parsers
+(`parsers/type_normalisation.py`, `parsers/xsd.py`) populate a locked-down
+shape (`additionalProperties: false`) covering every key the spec names:
+
+| Key | Type | Populated by |
+|---|---|---|
+| `bits` | integer | Integer bit width (xs:int/xs:long, OpenAPI int32/int64, Avro int/long) |
+| `offsetRequired` | boolean | dateTime: whether the source format mandates a UTC offset |
+| `refTarget` | string | A `$ref`/`xs:IDREF` target |
+| `choiceGroup` | string | Section 4.4: shared identifier for every branch of one `xs:choice` group |
+| `substitutionHead` | boolean | Section 4.4: true on an XSD substitution group's head element |
+| `substitutionOf` | string | Section 4.4: a substitution-group member's reference to the head's `attributeId` - the field name is a builder decision (not named in the spec), by analogy with `refTarget` |
+| `explicitNull` | boolean | Section 4.4: XSD `nillable="true"` - MUST NOT be conflated with `cardinality`'s `0..1` (`minOccurs="0"`) |
+| `inheritedFrom` | string | Section 4.4: `xs:extension` flattening - marks a member inherited from a base type |
 
 ## Known design gaps to close in later increments
 

@@ -19,7 +19,18 @@
     "dataType": { "$ref": "../../common/defs.json#/$defs/dataType" },
     "typeDetail": {
       "type": "object",
-      "description": "Free-form at Increment 1 (format/precision/itemType/refTarget). Tightened once Increment 3 (parsers/type normalisation) defines exact per-dataType shapes."
+      "additionalProperties": false,
+      "description": "Tightened at Increment 3 (parsers/type_normalisation.py, Section 4.3/4.4). One shape shared across all dataTypes; every sub-field is optional and only populated by the parser idiom that produces it - see docs/contracts.md's typeDetail table.",
+      "properties": {
+        "bits": { "type": "integer", "description": "integer: xs:int(32)/xs:long(64)/Avro int(32)/long(64) bit width." },
+        "offsetRequired": { "type": "boolean", "description": "dateTime: whether the source format mandates a UTC offset." },
+        "refTarget": { "type": "string", "description": "reference: the target this reference points to (xs:IDREF target, $ref pointer, Avro named-type reference)." },
+        "choiceGroup": { "type": "string", "description": "xs:choice: shared identifier for every branch of one choice group (Section 4.4)." },
+        "substitutionHead": { "type": "boolean", "description": "true on the head element of an XSD substitution group." },
+        "substitutionOf": { "type": "string", "description": "On a substitution-group member: the attributeId of the head element it substitutes for." },
+        "explicitNull": { "type": "boolean", "description": "XSD nillable=\"true\". MUST NOT be conflated with cardinality's 0..1 (minOccurs=\"0\")." },
+        "inheritedFrom": { "type": "string", "description": "xs:extension: the base type localName this attribute was flattened in from, when the region did not declare it directly." }
+      }
     },
     "cardinality": { "$ref": "../../common/defs.json#/$defs/cardinality" },
     "obligation": { "$ref": "../../common/defs.json#/$defs/obligation" },
