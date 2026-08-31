@@ -52,6 +52,10 @@ data/cache/*
 .env
 .env.local
 
+# Run-store (Section 3.7): local, run-scoped output. Tests write under
+# tmp_path, so a real run-store/ only appears from a manual local run.
+run-store/
+
 # Temporary files
 *.tmp
 *.bak

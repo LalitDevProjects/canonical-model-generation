@@ -39,10 +39,13 @@ increments (Section 17), in order: contracts before code, the sanitisation
 gate before any real evidence moves, deterministic components before
 probabilistic (agent) ones, coverage before emission.
 
-**Increment 1 ("Skeleton and contracts") is complete.** Repository layout,
-CI, `mypy --strict`, all eleven data contracts as JSON Schema with generated
-Pydantic models, cross-artefact invariant validators, and a fixture suite
-are in place. See `docs/contracts.md` and `docs/increments.md`.
+**Increments 1 and 2 are complete.** Increment 1 ("Skeleton and contracts"):
+repository layout, CI, `mypy --strict`, all eleven data contracts as JSON
+Schema with generated Pydantic models, cross-artefact invariant validators,
+and a fixture suite. Increment 2 ("Connectors and manifest"): real Git and
+Confluence-fixture connectors, two-pass relevance filtering, and corpus
+manifest assembly/sealing/persistence, proven end-to-end over a real golden
+corpus. See `docs/contracts.md` and `docs/increments.md`.
 
 A previous implementation (`archive/legacy_src/`) diverged from the spec in
 several fundamental ways (random-UUID identity instead of the spec's
@@ -54,33 +57,35 @@ be cherry-picked into `parsers/` at Increment 3.
 ## Project Structure
 
 The repository follows the layout mandated by the PoC Build Guide (Section
-17.4). Most directories are still empty and carry a `README.md` stating
-which increment populates them.
+17.4). Directories not yet populated carry a `README.md` stating which
+increment populates them.
 
 ```
 canonical-model-generation/
   contracts/          C1-C11 JSON Schema 2020-12 contracts (Increment 1)
   generated/           Pydantic models generated from contracts/ - never hand-edited (Increment 1)
-  config/               Platform configuration: settings.py, platform.yaml (Increment 1)
+  config/               Platform configuration: settings.py, platform.yaml (Increments 1-2)
   prompts/{agent}/      Versioned agent prompt templates (Increment 6)
   agents/               Agent runtime: tool gateway, model gateway, validation ladder (Increment 6)
   tools/                 Tool gateway implementations (Increment 6)
-  connectors/           Git/Confluence connectors, relevance filtering, corpus manifest (Increment 2)
+  connectors/           Git/Confluence connectors, relevance filtering, corpus manifest (Increment 2 - built)
   parsers/               OpenAPI/WSDL/XSD/Avro parsers, type normalisation, profiling (Increment 3)
   gate/                  Sanitisation ladder, tokenisation, egress ledger (Increment 4)
   substrate/             Chunking, embeddings, vector + concept graph, substrate-api (Increment 5)
-  pipeline/               Orchestration: run state machine, work items, checkpoints
+  pipeline/               Orchestration: run store persistence (Increment 2 - started), state machine (later)
   algorithms/            Blocking, similarity, clustering, ACORD alignment, coverage (Increments 7-8)
   mapping/               Mapping DSL: grammar, transform library, round-trip tests (Increment 9)
   emit/                   Schema/OpenAPI emitters, logical model export, registry (Increment 9)
   api/                    Internal service APIs (run control, registry, workshop)
-  golden/                Synthetic golden corpus, 10 planted difficulties (Increments 2-3)
+  golden/                Golden corpus, built incrementally (Increment 2 - started; see golden/README.md)
   eval/                  Agent evaluation harness (Increments 6-7)
   infra/                 docker-compose.yml (local Postgres + pgvector)
   docs/                   Detailed documentation, updated alongside contract/agent changes
   tests/
+    connectors/            Connector, relevance-filter, manifest, and golden-corpus e2e tests
     contracts/            Schema + generated-model fixture and invariant tests
     fixtures/              Per-contract positive/negative fixtures, invariant bundles
+    pipeline/              Run-store tests
     unit/                  Unit tests (validators, config)
   archive/legacy_src/      Pre-rebuild implementation, retained for reference/cherry-picking
   .github/workflows/       CI
@@ -130,18 +135,21 @@ CI fails the build if `generated/` doesn't match what
 pytest
 
 # Run with coverage report (fails under 85%, per pyproject.toml)
-pytest --cov=generated --cov=contracts --cov=config --cov-report=term-missing
+pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov-report=term-missing
 
 # Run just the contract/fixture tests
 pytest tests/contracts/
+
+# Run just the Increment 2 acceptance test (real connectors over the golden corpus)
+pytest tests/connectors/test_golden_corpus_e2e.py
 ```
 
 ### Development
 
 ```bash
-mypy --strict generated contracts config tests
-black contracts/ config/ tests/ scripts/
-isort contracts/ config/ tests/ scripts/
+mypy --strict generated contracts config connectors pipeline tests
+black contracts/ config/ connectors/ pipeline/ tests/ scripts/
+isort contracts/ config/ connectors/ pipeline/ tests/ scripts/
 ```
 
 ## Configuration

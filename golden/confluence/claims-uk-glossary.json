@@ -1,0 +1,13 @@
+{
+  "id": "123456",
+  "type": "page",
+  "title": "Claims UK - FNOL Glossary",
+  "space": { "key": "CLAIMSUK" },
+  "version": { "number": 42, "when": "2026-06-01T10:00:00Z", "by": "jane.doe" },
+  "body": {
+    "storage": {
+      "value": "<h1>FNOL Glossary</h1><p>FNOL: First Notification of Loss, the initial report a claimant submits after an incident. See also: loss date, reserve amount, claim status.</p>",
+      "representation": "storage"
+    }
+  }
+}

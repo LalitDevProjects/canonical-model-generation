@@ -6,6 +6,7 @@ from config.settings import (
     ModelsConfig,
     ModelTierConfig,
     PlatformSettings,
+    RelevanceConfig,
     StorageConfig,
     load_settings,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "ModelsConfig",
     "ModelTierConfig",
     "PlatformSettings",
+    "RelevanceConfig",
     "StorageConfig",
     "load_settings",
 ]

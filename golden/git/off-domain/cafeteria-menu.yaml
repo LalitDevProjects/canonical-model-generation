@@ -1,0 +1,41 @@
+openapi: "3.1.0"
+info:
+  title: Cafeteria Menu API
+  version: "1.0.0"
+  description: >
+    Internal staff-cafeteria menu lookup service. Not part of the claims
+    domain - deliberately included in the golden corpus so relevance
+    filtering has a genuine, well-formed, off-domain artefact to drop
+    (Increment 2's own acceptance test needs something pass-1 scoring
+    excludes with reason "out-of-domain").
+paths:
+  /menu/today:
+    get:
+      summary: Retrieve today's cafeteria menu
+      operationId: getTodayMenu
+      responses:
+        "200":
+          description: Menu found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MenuItem"
+components:
+  schemas:
+    MenuItem:
+      type: object
+      required:
+        - name
+        - price
+      properties:
+        name:
+          type: string
+          description: Dish name.
+        price:
+          type: number
+          description: Price in local currency.
+        calories:
+          type: integer
+          description: Estimated calorie count.

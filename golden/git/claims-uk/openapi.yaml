@@ -1,0 +1,50 @@
+openapi: "3.1.0"
+info:
+  title: Claims API (UK)
+  version: "1.0.0"
+  description: >
+    First Notification of Loss (FNOL) and claim status API for the UK
+    regional claims estate.
+paths:
+  /claims/{claimId}:
+    get:
+      summary: Retrieve a claim
+      operationId: getClaim
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Claim found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Claim"
+components:
+  schemas:
+    Claim:
+      type: object
+      required:
+        - claimId
+        - lossDate
+        - claimant
+        - status
+      properties:
+        claimId:
+          type: string
+          description: Unique claim identifier.
+        lossDate:
+          type: string
+          description: Date the loss occurred.
+        claimant:
+          type: string
+          description: Name of the person filing the claim.
+        reserveAmount:
+          type: number
+          description: Reserved settlement amount.
+        status:
+          type: string
+          enum: [OPEN, CLOSED]

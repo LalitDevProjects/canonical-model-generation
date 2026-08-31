@@ -17,7 +17,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_PLATFORM_YAML = Path(__file__).resolve().parent / "platform.yaml"
@@ -60,6 +60,43 @@ class StorageConfig(BaseModel):
         "code in this increment connects to it."
     )
     pgvector_enabled: bool = True
+    run_store_path: str = Field(
+        default="run-store",
+        description="Base directory for run-store/{runId}/... (Section 3.7). "
+        "A relative path resolves against the repository root "
+        "(pipeline.run_store.RunStore), not the process's working directory.",
+    )
+
+
+class RelevanceConfig(BaseModel):
+    """Pass-1 deterministic relevance filtering (Section 4.2). pass1_keep/
+    pass1_drop/domain_tokens values are transcribed verbatim from the
+    spec's own config/platform.yaml example (Section 15.1); pass1_weights
+    and contract_media_types have no spec-given example and are Increment
+    2 builder defaults."""
+
+    pass1_keep: float = Field(ge=0.0, le=1.0)
+    pass1_drop: float = Field(ge=0.0, le=1.0)
+    domain_tokens: dict[str, list[str]]
+    pass1_weights: dict[str, float] = Field(
+        default_factory=lambda: {"path": 0.60, "catalogue": 0.20, "gateway": 0.10, "kind": 0.10}
+    )
+    contract_media_types: list[str] = Field(
+        default_factory=lambda: [
+            "application/json",
+            "application/yaml",
+            "application/x-yaml",
+            "application/vnd.oai.openapi",
+            "application/schema+json",
+            "application/xml",
+        ]
+    )
+
+    @model_validator(mode="after")
+    def _drop_not_above_keep(self) -> "RelevanceConfig":
+        if self.pass1_drop > self.pass1_keep:
+            raise ValueError("relevance.pass1_drop must not exceed relevance.pass1_keep")
+        return self
 
 
 class EgressConfig(BaseModel):
@@ -119,6 +156,7 @@ class PlatformSettings(BaseSettings):
     storage: StorageConfig
     egress: EgressConfig
     feature_flags: FeatureFlags
+    relevance: RelevanceConfig
 
 
 def load_settings(yaml_path: Path | None = None) -> PlatformSettings:

@@ -1,6 +1,5 @@
-# Platform default configuration (Section 15.1). Increment 1 scope: this
-# file exists and is well-typed (config/settings.py); it isn't consumed by
-# any runtime yet since no pipeline runtime exists until later increments.
+# Platform default configuration (Section 15.1). As of Increment 2, the
+# relevance section is consumed for real by connectors/relevance.py.
 environment: dev
 
 models:
@@ -23,10 +22,34 @@ models:
 storage:
   postgres_dsn: "postgresql://cmgp:cmgp@localhost:5432/cmgp"
   pgvector_enabled: true
+  run_store_path: "run-store"
 
 egress:
   policy_version: 1
   fail_mode: closed
+
+# Pass-1 deterministic relevance filtering (Section 4.2). pass1_keep,
+# pass1_drop and domain_tokens.claims are transcribed verbatim from the
+# spec's own Section 15.1 example; pass1_weights and contract_media_types
+# have no spec-given example and are Increment 2 builder defaults (see
+# connectors/relevance.py for the reasoning).
+relevance:
+  pass1_keep: 0.65
+  pass1_drop: 0.20
+  domain_tokens:
+    claims: [claim, fnol, loss, incident, claimant, settlement, reserve, sinistre]
+  pass1_weights:
+    path: 0.60
+    catalogue: 0.20
+    gateway: 0.10
+    kind: 0.10
+  contract_media_types:
+    - application/json
+    - application/yaml
+    - application/x-yaml
+    - application/vnd.oai.openapi
+    - application/schema+json
+    - application/xml
 
 # Dotted spelling matches the spec's own Section 15.3 flag names; translated
 # to snake_case by FeatureFlags.from_dotted (config/settings.py) before

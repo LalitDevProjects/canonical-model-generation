@@ -48,7 +48,7 @@ Homepage = "https://github.com/example/canonical-model-generation"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["contracts*", "generated*", "config*"]
+include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*"]
 
 [tool.black]
 line-length = 100
@@ -98,10 +98,11 @@ addopts = "-v --strict-markers --tb=short"
 markers = [
     "unit: unit tests",
     "contracts: JSON Schema / generated-model fixture tests",
+    "e2e: full pipeline tests over the golden corpus",
 ]
 
 [tool.coverage.run]
-source = ["generated", "contracts", "config"]
+source = ["generated", "contracts", "config", "connectors", "pipeline"]
 omit = [
     "*/tests/*",
     "generated/py.typed",
