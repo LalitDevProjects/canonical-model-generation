@@ -46,6 +46,16 @@ class ModelTierConfig(BaseModel):
         "Increment 6 wires one in."
     )
     max_tokens: int = Field(gt=0)
+    model_id: str | None = Field(
+        default=None,
+        description="Increment 6: the real provider model identifier this "
+        "tier_id resolves to (e.g. 'claude-haiku-4-5'), read by "
+        "agents/model_gateway.py's Anthropic-backed provider. Kept separate "
+        "from tier_id itself - tier_id stays the opaque, model-agnostic "
+        "identifier config/platform.yaml and RunManifest.pins.models pin "
+        "against; model_id is the concrete resolution, which can change "
+        "(a model deprecation, a provider swap) without touching tier_id.",
+    )
 
 
 class ModelsConfig(BaseModel):

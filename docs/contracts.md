@@ -25,6 +25,18 @@ policy rejection (e.g. `block-personal`) maps to `policy-blocked`.
 Regenerated and verified byte-reproducible before any gate code was
 written, same rigor as every other contract change in this repo.
 
+`contracts/C11/JournalEvent/1.0.json`'s `kind` enum gained
+`"tool.denied"` at Increment 6 - not just a missing field, the enum had
+no way to represent a denied tool call at all. Section 7.2: "the attempt
+is journalled as a tool.denied event"; Section 13.3: "tool.denied events
+and V4 guardrail violations are monitored. A spike in either is treated
+as a potential injection." Two new optional properties came with it:
+`tool` (the tool name requested) and `detail` (free text - the denial
+reason for `tool.denied`, or which guardrail/violation fired for
+`validation.failure`). Both optional, so every pre-Increment-6 journal
+event stays valid. Regenerated and verified byte-reproducible before any
+agent-runtime code was written.
+
 ## Contracts
 
 | ID | Name | Schema path | Status |
@@ -41,7 +53,7 @@ written, same rigor as every other contract change in this repo.
 | C9 | GapEntry | `contracts/C9/GapEntry/1.0.json` | **Interpreted, not verbatim spec** - only a one-line API reference exists (`GET /gaps -> {gaps: [GapEntry]}`), no field definition. Fully synthesized. Revisit at Increment 8. |
 | C10 | MappingSpec | `contracts/C10/MappingSpec/1.0.json` | **Interpreted, not verbatim spec** - the spec gives an EBNF grammar for a YAML-like DSL (Section 10.2), not a JSON Schema; this is a translation into the parsed-document shape. `mappings[].oneOf(transform, disposition)` encodes invariant I5. Revisit at Increment 9. |
 | C11 | RunManifest | `contracts/C11/RunManifest/1.0.json` | Transcribed from the Section 3.6 worked example. `state` is an open string, not a closed enum, since no exhaustive state list exists until the Increment 6 state machine is built |
-| C11 | JournalEvent | `contracts/C11/JournalEvent/1.0.json` | Transcribed from the Section 3.6 worked example |
+| C11 | JournalEvent | `contracts/C11/JournalEvent/1.0.json` | Transcribed from the Section 3.6 worked example. `kind` gained `"tool.denied"` at Increment 6, plus optional `tool`/`detail` fields (see below) |
 
 ## Cross-artefact invariants (I1-I6)
 

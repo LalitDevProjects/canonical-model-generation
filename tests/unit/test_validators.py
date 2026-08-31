@@ -20,7 +20,7 @@ from generated.C9.CoverageReport._1_0 import C9Coveragereport
 from generated.C10.MappingSpec._1_0 import C10Mappingspec
 
 from contracts.validators import (
-    _artefact_id_from_evref,
+    artefact_id_from_evref,
     canonical_json_bytes,
     check_i1_evidence_resolvable,
     check_i2_cluster_members_same_run,
@@ -35,13 +35,13 @@ from contracts.validators import (
 
 class TestArtefactIdFromEvref:
     def test_extracts_artefact_id(self) -> None:
-        assert _artefact_id_from_evref("evref://us/git/art-1@1234567890abcdef#/x") == "art-1"
+        assert artefact_id_from_evref("evref://us/git/art-1@1234567890abcdef#/x") == "art-1"
 
     def test_non_evref_scheme_returns_none(self) -> None:
-        assert _artefact_id_from_evref("https://example.com/not-an-evref") is None
+        assert artefact_id_from_evref("https://example.com/not-an-evref") is None
 
     def test_malformed_path_shape_returns_none(self) -> None:
-        assert _artefact_id_from_evref("evref://us/git") is None
+        assert artefact_id_from_evref("evref://us/git") is None
 
 RUN_ID = "11111111-1111-1111-1111-111111111111"
 

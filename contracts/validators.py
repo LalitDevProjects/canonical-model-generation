@@ -95,8 +95,12 @@ def _unwrap(value: object) -> object:
     return root if root is not None else value
 
 
-def _artefact_id_from_evref(ref: str) -> str | None:
-    """Extract the artefactId segment from an evref://{region}/{system}/{artefactId}@{hash}#{locator} URI."""
+def artefact_id_from_evref(ref: str) -> str | None:
+    """Extract the artefactId segment from an evref://{region}/{system}/{artefactId}@{hash}#{locator} URI.
+    Public (no leading underscore) since Increment 6: agents/validation.py's
+    V2 reference check reuses this directly, rather than reimplementing
+    evref parsing a second time - the same reasoning as canonical_json_bytes/
+    sign/ledger_body living here for cross-module reuse."""
     prefix = "evref://"
     if not ref.startswith(prefix):
         return None
@@ -120,7 +124,7 @@ def check_i1_evidence_resolvable(
     for attr in attributes:
         for ref in attr.evidenceRefs:
             ref_value = str(_unwrap(ref))
-            artefact_id = _artefact_id_from_evref(ref_value)
+            artefact_id = artefact_id_from_evref(ref_value)
             if artefact_id is None or artefact_id not in known_artefact_ids:
                 violations.append(InvariantViolation(
                     invariant="I1",

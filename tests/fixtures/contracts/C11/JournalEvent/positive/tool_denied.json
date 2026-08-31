@@ -1,0 +1,12 @@
+{
+  "runId": "11111111-1111-1111-1111-111111111111",
+  "seq": 7,
+  "at": "2026-08-20T08:15:00Z",
+  "kind": "tool.denied",
+  "stage": "S1",
+  "agent": "repository-scout",
+  "workItem": "work-item-0001",
+  "outcome": "failed",
+  "tool": "acord.lookup",
+  "detail": "not authorised: repository-scout is not in acord.lookup's allow-list"
+}

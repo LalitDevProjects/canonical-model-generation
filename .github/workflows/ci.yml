@@ -49,7 +49,7 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: python scripts/generate_models.py
       - name: mypy --strict
-        run: mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate tests
+        run: mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools tests
 
   test:
     needs: regen-and-diff
@@ -78,4 +78,4 @@ jobs:
       - name: pytest with coverage (fail under 85%)
         env:
           CMGP_STORAGE__POSTGRES_DSN: postgresql://cmgp:cmgp@localhost:5432/cmgp
-        run: pytest tests/ --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov-report=term-missing
+        run: pytest tests/ --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov-report=term-missing

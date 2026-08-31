@@ -14,6 +14,7 @@ class Kind(StrEnum):
     stage_transition = 'stage.transition'
     agent_invocation = 'agent.invocation'
     tool_call = 'tool.call'
+    tool_denied = 'tool.denied'
     validation_failure = 'validation.failure'
     human_decision = 'human.decision'
     budget_event = 'budget.event'
@@ -48,3 +49,11 @@ class C11Journalevent(BaseModel):
     latencyMs: Annotated[int | None, Field(ge=0)] = None
     outcome: Outcome | None = None
     artefactRefs: list[str] | None = None
+    tool: str | None = None
+    """
+    Increment 6: the tool name requested - present on tool.call/tool.denied events.
+    """
+    detail: str | None = None
+    """
+    Increment 6: free text - the denial reason for tool.denied, or which guardrail/violation fired for validation.failure. Section 13.3: "tool.denied events and V4 guardrail violations are monitored" - the denial must be identifiable, not just an opaque outcome=failed.
+    """

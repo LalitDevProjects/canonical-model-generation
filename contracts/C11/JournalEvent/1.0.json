@@ -12,7 +12,7 @@
     "at": { "$ref": "../../common/defs.json#/$defs/dateTime" },
     "kind": {
       "type": "string",
-      "enum": ["stage.transition", "agent.invocation", "tool.call", "validation.failure", "human.decision", "budget.event"]
+      "enum": ["stage.transition", "agent.invocation", "tool.call", "tool.denied", "validation.failure", "human.decision", "budget.event"]
     },
     "stage": { "type": "string" },
     "agent": { "type": "string" },
@@ -23,6 +23,14 @@
     "tokensOut": { "type": "integer", "minimum": 0 },
     "latencyMs": { "type": "integer", "minimum": 0 },
     "outcome": { "type": "string", "enum": ["ok", "retry", "escalated", "failed"] },
-    "artefactRefs": { "type": "array", "items": { "type": "string" } }
+    "artefactRefs": { "type": "array", "items": { "type": "string" } },
+    "tool": {
+      "type": "string",
+      "description": "Increment 6: the tool name requested - present on tool.call/tool.denied events."
+    },
+    "detail": {
+      "type": "string",
+      "description": "Increment 6: free text - the denial reason for tool.denied, or which guardrail/violation fired for validation.failure. Section 13.3: \"tool.denied events and V4 guardrail violations are monitored\" - the denial must be identifiable, not just an opaque outcome=failed."
+    }
   }
 }

@@ -39,7 +39,7 @@ increments (Section 17), in order: contracts before code, the sanitisation
 gate before any real evidence moves, deterministic components before
 probabilistic (agent) ones, coverage before emission.
 
-**Increments 1 through 3 are complete.** Increment 1 ("Skeleton and
+**Increments 1 through 6 are complete.** Increment 1 ("Skeleton and
 contracts"): repository layout, CI, `mypy --strict`, all eleven data
 contracts as JSON Schema with generated Pydantic models, cross-artefact
 invariant validators, and a fixture suite. Increment 2 ("Connectors and
@@ -50,7 +50,19 @@ OpenAPI/XSD/WSDL/Avro parsers producing `AttributeRecord` (the IR)
 directly, the authoritative type-normalisation lookup, and the attribute
 profiler - the planted `xsd:choice` and untyped-date golden fixtures prove
 the spec's own worked test and the parser/profiler separation
-structurally. See `docs/contracts.md` and `docs/increments.md`.
+structurally. Increment 4 ("Gate and ledger"): the real L0-L4
+sanitisation ladder, keyed tokenisation, policy decision point, and a
+hash-chained, signed egress ledger, replacing Increment 2's placeholder
+sanitisation. Increment 5 ("Substrate and retrieval"): a real
+PostgreSQL + pgvector knowledge substrate - chunking, a mock embedding
+pipeline, a concept graph with a recursive-CTE lineage query, and
+hybrid BM25 + vector search behind `SubstrateApi`. Increment 6 ("Agent
+runtime"): the `Agent` base contract's ten-step invocation path, a tool
+gateway with per-agent authorisation and audit, a model gateway with
+budget enforcement and a **real Anthropic API integration**, the V1-V5
+validation ladder, and two real agents (Repository Scout, Schema
+Interpreter) proven end to end. See `docs/contracts.md` and
+`docs/increments.md` for the full per-increment record.
 
 A previous implementation (`archive/legacy_src/`) diverged from the spec in
 several fundamental ways (random-UUID identity instead of the spec's
@@ -72,27 +84,31 @@ canonical-model-generation/
   contracts/          C1-C11 JSON Schema 2020-12 contracts (Increment 1)
   generated/           Pydantic models generated from contracts/ - never hand-edited (Increment 1)
   config/               Platform configuration: settings.py, platform.yaml (Increments 1-2)
-  prompts/{agent}/      Versioned agent prompt templates (Increment 6)
-  agents/               Agent runtime: tool gateway, model gateway, validation ladder (Increment 6)
-  tools/                 Tool gateway implementations (Increment 6)
+  prompts/{agent}/      Versioned agent prompt templates (Increment 6 - built: repository-scout/1.0.0.md)
+  agents/               Agent runtime: Agent ABC, model gateway (real Anthropic wiring), validation ladder, Repository Scout, Schema Interpreter (Increment 6 - built)
+  tools/                 Tool gateway: registry, authorisation/audit, real handlers for artefact.write/spec.parse/substrate.*/acord.lookup (Increment 6 - built)
   connectors/           Git/Confluence connectors, relevance filtering, corpus manifest (Increment 2 - built)
   parsers/               OpenAPI/WSDL/XSD/Avro parsers, type normalisation (Increment 3 - built; code_inference.py deferred)
-  gate/                  Sanitisation ladder, tokenisation, egress ledger (Increment 4)
-  substrate/             Chunking, embeddings, vector + concept graph, substrate-api (Increment 5)
-  pipeline/               Orchestration: run store persistence (Increment 2 - started), state machine (later)
-  algorithms/            Attribute profiling (Increment 3 - started); blocking, similarity, clustering, ACORD alignment, coverage (Increments 7-8)
+  gate/                  Sanitisation ladder, tokenisation, egress ledger (Increment 4 - built)
+  substrate/             Chunking, embeddings, vector + concept graph, substrate-api (Increment 5 - built, real Postgres + pgvector)
+  pipeline/               Orchestration: run store persistence, journal (Increments 2-6 - built), state machine (out of PoC scope - see docs/increments.md)
+  algorithms/            Attribute profiling (Increment 3 - built); blocking, similarity, clustering, ACORD alignment, coverage (Increments 7-8)
   mapping/               Mapping DSL: grammar, transform library, round-trip tests (Increment 9)
   emit/                   Schema/OpenAPI emitters, logical model export, registry (Increment 9)
-  api/                    Internal service APIs (run control, registry, workshop)
-  golden/                Golden corpus, built incrementally (Increments 2-3 - started; see golden/README.md)
-  eval/                  Agent evaluation harness (Increments 6-7)
-  infra/                 docker-compose.yml (local Postgres + pgvector)
+  api/                    Internal service APIs (run control, registry, workshop) (Increment 12)
+  golden/                Golden corpus, built incrementally (Increments 2-6 - see golden/README.md)
+  eval/                  Agent evaluation harness (deferred - no spec-given thresholds exist yet for Repository Scout/Schema Interpreter; see docs/increments.md)
+  infra/                 docker-compose.yml (local Postgres + pgvector, Increment 5)
   docs/                   Detailed documentation, updated alongside contract/agent changes
   tests/
+    agents/                Agent ABC, model gateway, prompt render, validation ladder, Repository Scout, Schema Interpreter, Increment 6 acceptance tests
     algorithms/            Profiling tests
     connectors/            Connector, relevance-filter, manifest, and golden-corpus e2e tests
     contracts/            Schema + generated-model fixture and invariant tests
     fixtures/              Per-contract positive/negative fixtures, invariant bundles
+    gate/                  Detectors, tokenisation, policy, ledger, Increment 4 acceptance tests
+    substrate/             Chunking, embedding, graph, search, ingest, api, Increment 5 acceptance tests (mostly pytest.mark.db)
+    tools/                 Tool gateway authorisation/schema/journalling tests
     parsers/               Parser, type-normalisation, and router tests
     pipeline/              Run-store tests
     unit/                  Unit tests (validators, config)
@@ -108,7 +124,22 @@ canonical-model-generation/
 ### Prerequisites
 
 - Python 3.12+ (the dev environment here currently runs 3.13; CI pins exactly 3.12)
-- Docker Desktop (optional at Increment 1 - only needed once `infra/docker-compose.yml` is actually used, from Increment 5 onward)
+- Docker Desktop (optional at Increment 1 - only needed once `infra/docker-compose.yml` is actually used, from Increment 5 onward). If port 5432 is already taken by another local Postgres install, remap the host port in `infra/docker-compose.yml` and point `CMGP_STORAGE__POSTGRES_DSN` at it - see that file's own comment.
+- An Anthropic API key (optional until Increment 6's agent framework is
+  exercised for real - `pytest.mark.db`/`pytest.mark.llm` tests skip
+  cleanly without their respective prerequisite, so neither is required
+  just to run the rest of the suite):
+  1. Create a key at [console.anthropic.com](https://console.anthropic.com)
+     (Settings -> API Keys).
+  2. Set it in your shell before running anything that makes a real
+     model call: `export ANTHROPIC_API_KEY=sk-ant-...` (or the
+     PowerShell equivalent, `$env:ANTHROPIC_API_KEY = "sk-ant-..."`).
+     `agents/model_gateway.py::anthropic_provider` reads it from the
+     environment lazily, on the first real call only - it is never
+     required to import this repo's code, run the hermetic test suite,
+     or construct a `ModelGateway` with an injected fake provider.
+  3. Run `pytest -m llm` to exercise the real Anthropic-backed tests
+     once the key is set.
 
 ### Installation
 
@@ -144,7 +175,7 @@ CI fails the build if `generated/` doesn't match what
 pytest
 
 # Run with coverage report (fails under 85%, per pyproject.toml)
-pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov-report=term-missing
+pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov-report=term-missing
 
 # Run just the contract/fixture tests
 pytest tests/contracts/
@@ -154,14 +185,27 @@ pytest tests/connectors/test_golden_corpus_e2e.py
 
 # Run just the Increment 3 acceptance test (the spec's own worked xsd:choice test, and profiling)
 pytest tests/parsers/test_xsd.py tests/algorithms/
+
+# Run just the Increment 4 acceptance test (masked example, licence-blocked exclusion, ledger)
+pytest tests/gate/test_acceptance.py tests/gate/test_ledger.py
+
+# Run just the Increment 5 acceptance test (deterministic retrieval, four-hop lineage) -
+# needs a live Postgres: docker compose -f infra/docker-compose.yml up -d
+pytest tests/substrate/test_substrate_acceptance.py
+
+# Run just the Increment 6 acceptance test (denied tool call, retry-then-escalate, injection resistance)
+pytest tests/agents/test_agent_runtime_acceptance.py
+
+# Run the tests requiring a real Anthropic API call (skip cleanly without ANTHROPIC_API_KEY)
+pytest -m llm
 ```
 
 ### Development
 
 ```bash
-mypy --strict generated contracts config connectors pipeline parsers algorithms tests
-black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ tests/ scripts/
-isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ tests/ scripts/
+mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools tests
+black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ tests/ scripts/
+isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ tests/ scripts/
 ```
 
 ## Configuration
@@ -171,8 +215,13 @@ environment variable overrides (`CMGP_` prefix). See `config/settings.py`
 and `docs/contracts.md` for details.
 
 Key configuration areas:
-- Model tier routing (provider-abstracted; no concrete LLM provider is
-  named anywhere in configuration or code - see Section 13/D3)
+- Model tier routing (`fast`/`high`/`critic`, provider-abstracted via
+  `tier_id`). Since Increment 6, each tier also carries a concrete
+  `model_id` (`config/platform.yaml`) that `agents/model_gateway.py`
+  resolves to a real Anthropic model - a deliberate, user-confirmed
+  departure from Increment 1's original "no concrete provider/model
+  named anywhere" framing (Section 13/D3), once the agent framework
+  needed a real provider to call.
 - Storage settings (Postgres + pgvector, `infra/docker-compose.yml`)
 - Feature flags (`acord.ingestion.enabled`, `inference.enabled`,
   `critic.secondary_provider`, `gate.dpo_override.enabled`,
@@ -345,5 +394,5 @@ See `CONTRIBUTING.md` for development guidelines.
 
 ---
 
-**Status**: Draft for Technical Review (v0.1) - Increment 1 of 9 (PoC Build Guide, Section 17) complete
+**Status**: Draft for Technical Review (v0.1) - Increments 1-6 of 9 (PoC Build Guide, Section 17) complete
 **Last Updated**: 31 August 2026

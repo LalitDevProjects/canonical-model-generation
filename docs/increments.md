@@ -13,7 +13,7 @@ emission.
 | I3 | Parsers to IR | **Complete** | Golden-file tests pass byte-exact; the planted `xsd:choice` survives as variants; the untyped date raises `type-suspicion` |
 | I4 | Gate and ledger | **Complete** | The planted personal-data example is masked; the licence-restricted artefact is blocked and appears in `exclusions`; the ledger chain verifies |
 | I5 | Substrate and retrieval | **Complete** | Retrieval is deterministic across repeats; the four-hop lineage query returns the expected path |
-| I6 | Agent runtime | Not started | A denied tool call is journalled and refused; a schema violation retries then escalates; the planted injection string changes nothing |
+| I6 | Agent runtime | **Complete** | A denied tool call is journalled and refused; a schema violation retries then escalates; the planted injection string changes nothing |
 | I7 | Clustering and conflicts | Not started | Planted synonyms cluster; the planted homonym does not merge; evaluation harness meets the Semantic Resolver thresholds |
 | I8 | Synthesis and coverage | Not started | Coverage is computed with a published denominator; Gate 1 blocks correctly on a seeded unresolved mandatory attribute |
 | I9 | Emission and workshop pack | Not started | Emitted schemas validate; every round-trip test passes or its loss is declared; the pack is complete enough to run a real session from |
@@ -291,6 +291,121 @@ conflict. Local test runs on this machine need
 directly by `tests/substrate/db_fixture.py`, not by `load_settings()`
 itself (which treats already-set YAML values as higher-precedence than
 environment variables).
+
+## I6 - what was built
+
+- **Real Anthropic API provider, not a continued mock** - a deliberate,
+  user-confirmed decision (against the recommendation to stay
+  deterministic-mock even at this increment). `fast` tier resolves to
+  `claude-haiku-4-5-20251001`, `high` to `claude-sonnet-5`
+  (`config/platform.yaml`'s new `model_id` field per tier). The
+  underlying provider call is injectable (`agents/model_gateway.py::ProviderFn`)
+  - the agent framework's own logic (retry, escalation, tool
+    authorisation, guardrails) is tested against a scripted fake
+    throughout; a small `pytest.mark.llm`-marked suite exercises the
+    real call and skips cleanly (same pattern as `pytest.mark.db`) since
+    no `ANTHROPIC_API_KEY` was available this session - real end-to-end
+    verification is the user's own follow-up once they have a key.
+- **A real contract gap found and closed**: `contracts/C11/JournalEvent/1.0.json`'s
+  `kind` enum had no `"tool.denied"` value at all (not just a missing
+  field) - Section 7.2's "the attempt is journalled as a tool.denied
+  event" had no way to be represented. Added `"tool.denied"` plus
+  optional `tool`/`detail` fields, same rigor as Increment 4's
+  `policy-blocked` addition - regenerated, verified byte-reproducible,
+  confirmed every pre-existing journal test still passes unmodified.
+- `agents/base.py`: the `Agent` ABC's literal ten-step `invoke()` path
+  (Section 7.1), with Section 7.6's retry table as a real retry loop -
+  schema failures retry twice with the validation error appended to the
+  prompt, semantic failures retry once with the offending values named,
+  guardrail violations get zero retries and escalate immediately. No
+  S1-S8 orchestrator exists or is in scope this increment (Section
+  8.3's own pseudocode is an AWS Step Functions definition this repo
+  has no way to run, and no increment's acceptance test through I9
+  needs a real one) - `route()` is an identity stub.
+- `agents/validation.py`: the V1-V5 ladder. V1 (`jsonschema`), V2
+  (reuses `contracts/validators.py`'s evref-parsing, promoted from
+  `_artefact_id_from_evref` to public `artefact_id_from_evref`), V4
+  (runs every guardrail to completion, same "ladder doesn't
+  short-circuit" discipline as the L0-L4 sanitisation ladder). V3
+  (provenance) is trivially satisfied at Increment 6 - neither agent
+  invents enumeration values. V5 (cross-artefact I2-I5) dispatches
+  directly onto the already-real invariant checks but is **genuinely
+  unexercised** this increment: neither agent produces
+  ConceptCluster/CanonicalCandidate/CoverageReport/MappingSpec data,
+  none of which exist before Increments 7-9 - a real scope boundary.
+- `agents/model_gateway.py`: `Budget`, transcribed from Section 7.6's
+  own pseudocode with one real bug fixed (`self.stage_spend` was read
+  in `check()` but never assigned in `__init__` - a real
+  `defaultdict(int)` is what that line evidently intended), constructed
+  **from** the already-real `generated.C11.RunManifest.Budget` field,
+  not a new config section. Budget stage resolves from `WorkItem.stage`
+  (Section 8.2), not a separately-maintained agent-to-stage map.
+- `tools/`: the tool gateway (`ToolGateway`, authorisation + argument/
+  result schema validation + `tool.call`/`tool.denied` journalling in
+  one place) and the registry (`ToolDefinition`, matching the spec's
+  one fully-worked example, `acord.lookup`, exactly). Real handlers for
+  `artefact.write` (every agent's own write path, Section 7.1 step 9 -
+  authorised for `"*"`, every agent, matching the table's "All
+  families"), `spec.parse` (wraps `parsers/router.py::parse` - Schema
+  Interpreter), and `substrate.query`/`substrate.neighbours`/`acord.lookup`
+  (thin wrappers over the already-real `SubstrateApi`, unblocking
+  Increment 7/8 agents even though neither of this increment's own
+  agents calls them). `repo.search`/`repo.read`/`kb.search`/
+  `catalogue.query` are registered (metadata only, per "every tool in
+  7.2 is specified this way in `tools/`") but have no real handler yet
+  - honestly deferred, not silently stubbed.
+- `agents/repository_scout.py`: Repository Scout, explicitly deferred
+  to this increment back at Increment 2
+  (`connectors/relevance.py::default_uncertain_policy`'s own docstring:
+  "no Repository Scout until Increment 6"). `make_repository_scout_classifier(ctx)`
+  is a factory producing a closure matching `filter_relevance`'s exact
+  `scout_classifier` signature - **zero changes to
+  `connectors/relevance.py`**. Two guardrails: a verdict's own `reason`
+  must not echo injected override language, and `in_domain=true`
+  requires a real, non-whitespace reason - belt-and-braces code checks
+  behind the real architectural controls (the prompt's `[INJECTION]`
+  block; no consequential actions per Section 13.3).
+- `agents/schema_interpreter.py` + `agents/deterministic.py`: Schema
+  Interpreter, a thin `Agent`-ABC wrapper (`model_tier: n/a`, no prompt,
+  no model call) around the already-real `parsers/router.py::parse`,
+  reached through the `spec.parse` tool so the same authorisation/audit
+  path a model-calling agent's tool use goes through also covers
+  deterministic agents.
+- `golden/agents/scout/`: `off_domain.json` (benign, off-domain) and
+  `injection.json` (a planted instruction-override string embedded in
+  otherwise off-domain content) - both real Confluence-shaped fixtures
+  verified to land in pass-1's own "uncertain" band (score 0.63,
+  between `pass1_drop` 0.20 and `pass1_keep` 0.65), so they genuinely
+  reach the agent rather than being filtered out beforehand.
+- **Eval harness deferred, not built**: Section 17.5's Definition of
+  Done asks for "an evaluation-set result recorded" for any new
+  agent/prompt, but Section 16.4's own threshold table names only
+  Semantic Resolver/ACORD Aligner/Canonical Synthesiser/Adversarial
+  Critic/Rule Extractor - nothing for Repository Scout or Schema
+  Interpreter. Building `eval/` now would mean inventing thresholds
+  with no spec grounding; documented as a deferred gap (same status as
+  C9.GapEntry/C10), not required by this increment's own literal
+  acceptance test.
+- 558 tests passing (up from 451 at I5; 1 skipped - the real-call
+  `pytest.mark.llm` test, pending an API key), `mypy --strict` clean
+  across 142 source files, ~99.4% coverage overall (98%+ within
+  `agents`/`tools` themselves - the only real gap is the live
+  Anthropic HTTP call body, which cannot be exercised without a key).
+- All three acceptance-test clauses map to literal tests in
+  `tests/agents/test_agent_runtime_acceptance.py`:
+  `TestADeniedToolCallIsJournalledAndRefused`,
+  `TestASchemaViolationRetriesThenEscalates`, and
+  `TestThePlantedInjectionStringChangesNothing` (both a direct
+  classifier-level check and an end-to-end `filter_relevance` run).
+
+**Confirmed decisions**: real Anthropic API provider (a genuine
+departure from the "mock until Increment 6" framing, since Increment 6
+is where that could change and the user chose to make it real); real
+API calls stay opt-in-only in tests, mocked/injected by default;
+Repository Scout + Schema Interpreter are the two agents, chosen for
+having real, already-built supporting infrastructure (Increment 2's own
+deferred callback; Increment 3's real parser) over inventing two
+under-specified agents from scratch.
 
 ## Decisions locked in for the rebuild (apply across all increments unless revisited)
 

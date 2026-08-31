@@ -28,6 +28,7 @@ dependencies = [
     "jsonschema>=4.18",
     "lxml>=5.0,<6.0",
     "psycopg[binary]>=3.1",
+    "anthropic>=1.0,<2.0",
 ]
 
 [project.optional-dependencies]
@@ -50,7 +51,7 @@ Homepage = "https://github.com/example/canonical-model-generation"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*", "parsers*", "algorithms*", "gate*", "substrate*"]
+include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*", "parsers*", "algorithms*", "gate*", "substrate*", "agents*", "tools*"]
 
 [tool.black]
 line-length = 100
@@ -102,10 +103,11 @@ markers = [
     "contracts: JSON Schema / generated-model fixture tests",
     "e2e: full pipeline tests over the golden corpus",
     "db: tests requiring a live Postgres (docker compose -f infra/docker-compose.yml up -d)",
+    "llm: tests requiring a real Anthropic API key (ANTHROPIC_API_KEY); skip cleanly when unset",
 ]
 
 [tool.coverage.run]
-source = ["generated", "contracts", "config", "connectors", "pipeline", "parsers", "algorithms", "gate", "substrate"]
+source = ["generated", "contracts", "config", "connectors", "pipeline", "parsers", "algorithms", "gate", "substrate", "agents", "tools"]
 omit = [
     "*/tests/*",
     "generated/py.typed",

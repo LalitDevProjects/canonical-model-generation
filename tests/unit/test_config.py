@@ -7,6 +7,8 @@ from config.settings import (
     EgressConfig,
     Environment,
     FeatureFlags,
+    ModelProvider,
+    ModelTierConfig,
     PlatformSettings,
     RelevanceConfig,
     load_settings,
@@ -41,6 +43,26 @@ def test_feature_flags_from_dotted_defaults_when_key_absent() -> None:
 def test_storage_run_store_path_default() -> None:
     settings = load_settings()
     assert settings.storage.run_store_path == "run-store"
+
+
+def test_default_platform_yaml_model_ids_are_set_for_the_two_tiers_agents_use() -> None:
+    settings = load_settings()
+    assert settings.models.tiers["fast"].model_id == "claude-haiku-4-5-20251001"
+    assert settings.models.tiers["high"].model_id == "claude-sonnet-5"
+
+
+def test_default_platform_yaml_critic_tier_has_no_model_id_yet() -> None:
+    # Section 19.2's degraded mode: no secondary provider is configured in
+    # this PoC - "critic runs on the primary provider with a distinct
+    # prompt lineage" - model_id stays unset until an increment that
+    # actually builds the adversarial critic needs it.
+    settings = load_settings()
+    assert settings.models.tiers["critic"].model_id is None
+
+
+def test_model_tier_config_model_id_defaults_to_none() -> None:
+    tier = ModelTierConfig(provider=ModelProvider.PRIMARY, tier_id="fast-v1", max_tokens=8000)
+    assert tier.model_id is None
 
 
 def test_relevance_config_loads_spec_verbatim_values() -> None:

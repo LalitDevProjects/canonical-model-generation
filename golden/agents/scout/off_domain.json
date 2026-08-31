@@ -1,0 +1,13 @@
+{
+  "id": "700001",
+  "type": "page",
+  "title": "Annual Leave Policy",
+  "space": { "key": "CLAIMSHR" },
+  "version": { "number": 3, "when": "2026-01-15T09:00:00Z", "by": "hr.admin" },
+  "body": {
+    "storage": {
+      "value": "<h1>Annual Leave Policy</h1><p>All staff accrue 25 days of annual leave per calendar year, prorated for part-time contracts.</p>",
+      "representation": "storage"
+    }
+  }
+}

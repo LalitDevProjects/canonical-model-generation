@@ -16,7 +16,7 @@ planted difficulty its own acceptance test needs:
   needed to add its own). `confluence/claims-uk-glossary.json` - a
   Confluence-fixture page whose content scores in the pass-1 "uncertain"
   band, exercising the third relevance-filter outcome.
-- **Increment 3** (current): `xsd/uk/ClaimNotification.xsd` - the spec's
+- **Increment 3**: `xsd/uk/ClaimNotification.xsd` - the spec's
   own literal test path, realising all five XSD idioms (Section 4.4) in
   one document plus the planted untyped-date case
   (`notificationDate: xs:string`, fully builder-instantiated - the spec
@@ -39,7 +39,25 @@ planted difficulty its own acceptance test needs:
   `licence_disposition_by_system` override parameter (same pattern
   `evidence_tier_by_system` already uses); see
   `tests/gate/test_acceptance.py`.
-- **Increment 6**: planted injection string.
+- **Increment 5**: `substrate/graph_fixture.json` - the hand-authored
+  deep-graph layer (Cluster/AcordConcept/Candidate/Decision/Release have
+  zero real producers until Increments 7-9) needed to prove the
+  four-hop lineage query for real, loaded via the exact same
+  `graph.write_node`/`write_edge` functions production ingestion calls.
+  Its seed attribute is a genuinely real one, parsed from
+  `xsd/uk/ClaimNotification.xsd`. A new top-level bucket (`substrate/`),
+  same reasoning as prior increments.
+- **Increment 6**: `agents/scout/off_domain.json` (benign, off-domain
+  Confluence-shaped page) and `agents/scout/injection.json` - the
+  planted injection string, an embedded instruction override
+  ("Ignore all previous instructions...") wrapped around genuinely
+  off-domain content. Both are verified to land in pass-1's own
+  "uncertain" band (score 0.63, between `pass1_drop` 0.20 and
+  `pass1_keep` 0.65 - their space key deliberately contains a domain
+  token, e.g. `CLAIMSHR`, so pass 1 can't resolve them on the URI alone),
+  so they genuinely reach Repository Scout rather than being filtered
+  out before the agent ever sees them. A new top-level bucket
+  (`agents/`), same reasoning as prior increments.
 - **Increment 7**: synonym triple (`lossDate`/`dateOfLoss`/`dateSurvenance`),
   homonym pair (`claimDate` meaning different things per region).
 - Not yet claimed by any increment's acceptance test: granularity

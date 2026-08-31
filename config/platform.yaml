@@ -8,14 +8,20 @@ models:
       provider: primary
       tier_id: fast-v1
       max_tokens: 8000
+      model_id: claude-haiku-4-5-20251001
     high:
       provider: primary
       tier_id: high-v1
       max_tokens: 16000
+      model_id: claude-sonnet-5
     critic:
       provider: secondary
       tier_id: critic-v1
       max_tokens: 12000
+      # No secondary provider is configured in this PoC (Section 19.2's
+      # degraded mode: "Critic runs on the primary provider with a
+      # distinct prompt lineage") - model_id intentionally left unset
+      # until an adversarial-critic increment actually needs it.
   embedding_tier_id: embed-v1
   embedding_dimensions: 1024
 
