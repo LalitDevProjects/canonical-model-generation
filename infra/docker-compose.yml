@@ -6,6 +6,12 @@
 # operate" - vs. a managed search service or a separate graph database.
 #
 # Usage once Docker Desktop is running: `docker compose -f infra/docker-compose.yml up -d`
+#
+# Host port 5433, not 5432: this developer's machine already runs a
+# separate, unrelated native PostgreSQL 18 Windows service on 5432 (an
+# Increment 5 discovery, not a design choice) - remapping avoids fighting
+# over the port rather than touching pre-existing infrastructure this
+# project doesn't own.
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -15,7 +21,7 @@ services:
       POSTGRES_PASSWORD: cmgp
       POSTGRES_DB: cmgp
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - cmgp-postgres-data:/var/lib/postgresql/data
     healthcheck:

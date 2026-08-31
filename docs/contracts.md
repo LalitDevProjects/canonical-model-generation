@@ -84,6 +84,23 @@ shape (`additionalProperties: false`) covering every key the spec names:
 | `explicitNull` | boolean | Section 4.4: XSD `nillable="true"` - MUST NOT be conflated with `cardinality`'s `0..1` (`minOccurs="0"`) |
 | `inheritedFrom` | string | Section 4.4: `xs:extension` flattening - marks a member inherited from a base type |
 
+## The concept graph's node types are not contracts (Increment 5)
+
+Section 6.3 defines seven concept-graph node types (`Artefact`,
+`Attribute`, `Cluster`, `AcordConcept`, `Candidate`, `Release`,
+`Decision`) and seven edge types. Four of the node types
+(`Artefact`/`Attribute`/`Cluster`/`Candidate`) are populated *from* real
+C1/C5/C6/C8 records - their graph `node_id` is literally that contract's
+own `artefactId`/`attributeId`/`clusterId`/`candidateId`. The other three
+(`AcordConcept`/`Release`/`Decision`) have **no C-numbered contract
+anywhere** - Section 6.3 introduces their field lists fresh, and
+`contracts/` stops at C11. `substrate/graph.py` models their properties
+as plain frozen dataclasses (`AcordConceptProps`/`ReleaseProps`/
+`DecisionProps`), the same status as `algorithms/profiling.py`'s
+`Finding`/`ProfiledAttribute` - a builder decision, not new JSON Schema
+contracts, since nothing in this repo needs to validate them against a
+schema independently of the graph write path itself.
+
 ## Known design gaps to close in later increments
 
 - C9.GapEntry and C10 are synthesized/interpreted rather than

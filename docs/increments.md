@@ -12,7 +12,7 @@ emission.
 | I2 | Connectors and manifest | **Complete** | A run over the golden corpus produces a sealed manifest whose `corpusHash` is stable across repeats, with every excluded artefact carrying a reason |
 | I3 | Parsers to IR | **Complete** | Golden-file tests pass byte-exact; the planted `xsd:choice` survives as variants; the untyped date raises `type-suspicion` |
 | I4 | Gate and ledger | **Complete** | The planted personal-data example is masked; the licence-restricted artefact is blocked and appears in `exclusions`; the ledger chain verifies |
-| I5 | Substrate and retrieval | Not started | Retrieval is deterministic across repeats; the four-hop lineage query returns the expected path |
+| I5 | Substrate and retrieval | **Complete** | Retrieval is deterministic across repeats; the four-hop lineage query returns the expected path |
 | I6 | Agent runtime | Not started | A denied tool call is journalled and refused; a schema violation retries then escalates; the planted injection string changes nothing |
 | I7 | Clustering and conflicts | Not started | Planted synonyms cluster; the planted homonym does not merge; evaluation harness meets the Semantic Resolver thresholds |
 | I8 | Synthesis and coverage | Not started | Coverage is computed with a published denominator; Gate 1 blocks correctly on a seeded unresolved mandatory attribute |
@@ -203,6 +203,94 @@ documented stub.
 **Confirmed decisions**: L2 NER is a lightweight stdlib heuristic, not
 spaCy (see `gate/detectors.py`); the evidence store is a minimal writer
 built now, not deferred to I5.
+
+## I5 - what was built
+
+- **Real Postgres + pgvector, not a local hermetic store** - a
+  deliberate, user-confirmed decision to wire up the infrastructure
+  `infra/docker-compose.yml` was built at Increment 1 specifically to
+  anticipate, rather than defer it further. `psycopg[binary]` is the new
+  dependency (no `pgvector` PyPI adapter - a 5-line hand-rolled vector
+  literal formatter avoids an extra `numpy` dependency for a PoC).
+- `substrate/schema.sql` + `substrate/db.py`: `nodes`/`edges` as a
+  generic property graph (not one table per Section 6.3 node/edge type -
+  see the schema's own docstring), `chunks`/`attribute_embeddings` with
+  pgvector columns. Idempotent `CREATE TABLE IF NOT EXISTS` throughout,
+  no migration tool - Section 6's own framing is that this data is
+  "derived; may be dropped and reconstructed from the evidence store."
+- `substrate/chunking.py`: one chunker per Section 6.2 artefact kind
+  (OpenAPI/JSON Schema, XSD, WSDL, Confluence), tested against every
+  relevant *real* golden fixture, not synthetic strings alone. Avro is
+  absent from the spec's own table - `chunk_avro`'s "one chunk per named
+  record/enum/fixed" is a documented builder default. Source code and
+  the ACORD reference pack chunkers are not implemented - confirmed out
+  of scope, same status as `parsers/code_inference.py`.
+- `substrate/embedding.py`: `mock_embed()`, a deterministic, non-semantic
+  placeholder for Increment 6's real model gateway (the Increment 1
+  lock-in below already required this - Increment 5 cannot call a real
+  embedding API).
+- `substrate/graph.py`: idempotent node/edge writes plus `lineage()`, a
+  bidirectional recursive CTE answering the spec's own worked query in
+  one statement. `AcordConcept`/`Release`/`Decision` have no C-numbered
+  contract anywhere (Section 6.3 introduces them fresh) - modelled as
+  plain frozen dataclasses, the same status as
+  `algorithms/profiling.py`'s `Finding`, not new JSON Schema contracts.
+- `substrate/search.py`: hand-written BM25 (a confirmed decision - no
+  `rank_bm25` dependency) and reciprocal-rank fusion, with
+  `(score, chunk_hash)` as the literal, tested tie-break that makes
+  `search()`'s ordering genuinely deterministic, not just usually so.
+- `substrate/ingest.py`: the first real wiring of `parsers/router.py`
+  (built at Increment 3, never previously run against a real pipeline)
+  against admitted artefacts, reading their REDACTED content from the
+  evidence store - never raw connector bytes, since the gate already
+  redacted this content once at Increment 4. Gracefully skips attribute
+  extraction (while still chunking) for artefact kinds with no
+  registered parser, e.g. Confluence - a real gap caught during planning,
+  not discovered by a failing test.
+- `pipeline/run_store.py` gained `write_attributes`/`read_attributes`
+  (`run-store/{runId}/S3/attributes/{region}.jsonl`, the storage
+  layout's literal path) and `append_journal_event`/`next_journal_seq`.
+- `substrate/api.py`: `SubstrateApi`, Section 6.4's five methods
+  verbatim, against this repo's real generated contracts
+  (`get_attribute`/`neighbours` return `generated.C5.AttributeRecord`
+  directly). `acord_lookup` always returns an empty list and
+  unconditionally journals the call - ACORD data is unlicensed in this
+  repo regardless of the feature flag, consistent with Section 19.2's
+  degraded mode.
+- `golden/substrate/graph_fixture.json`: the hand-authored deep-graph
+  layer (Cluster/AcordConcept/Candidate/Decision/Release have zero real
+  producers until Increments 7-9) needed to prove the four-hop lineage
+  query for real, loaded via the exact same `graph.write_node`/
+  `write_edge` functions production ingestion calls - not a parallel
+  test-only writer. Its seed attribute is a genuinely real one, parsed
+  from `golden/xsd/uk/ClaimNotification.xsd`.
+- 451 tests passing (up from 345 at I4), `mypy --strict` clean, ~99.7%
+  coverage on the modules in scope (100% within `substrate/` itself);
+  hermetic tests (the large majority) never touch a database, and
+  `pytest.mark.db` tests skip cleanly with an actionable message when
+  Postgres isn't reachable rather than failing the whole suite
+- Both acceptance-test clauses map to a literal test in
+  `tests/substrate/test_substrate_acceptance.py`:
+  `TestRetrievalIsDeterministicAcrossRepeats` (two `search()` calls with
+  identical arguments, byte-identical ordered chunk hashes and scores)
+  and `TestFourHopLineageQueryReturnsTheExpectedPath` (every expected
+  node type and edge type reachable from a seed `Candidate`, through the
+  real `Attribute`/`Artefact` pair and the hand-authored deep layer)
+
+**Confirmed decisions**: real Postgres + pgvector now, not deferred (a
+genuine departure from every prior increment's local-store-only bias -
+see the point above); BM25 is hand-written, no new dependency.
+
+**Environment note, not a design decision**: this developer's machine
+runs a separate, unrelated native PostgreSQL 18 Windows service on the
+default port 5432 - `infra/docker-compose.yml` is remapped to host port
+5433 to avoid the collision (see its own comment); `config/platform.yaml`
+keeps the standard 5432 DSN, since CI and other machines have no such
+conflict. Local test runs on this machine need
+`CMGP_STORAGE__POSTGRES_DSN` set to override it - this env var is read
+directly by `tests/substrate/db_fixture.py`, not by `load_settings()`
+itself (which treats already-set YAML values as higher-precedence than
+environment variables).
 
 ## Decisions locked in for the rebuild (apply across all increments unless revisited)
 

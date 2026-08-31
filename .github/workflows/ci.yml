@@ -49,11 +49,25 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: python scripts/generate_models.py
       - name: mypy --strict
-        run: mypy --strict generated contracts config connectors pipeline parsers algorithms gate tests
+        run: mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate tests
 
   test:
     needs: regen-and-diff
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: cmgp
+          POSTGRES_PASSWORD: cmgp
+          POSTGRES_DB: cmgp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cmgp -d cmgp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -62,4 +76,6 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: python scripts/generate_models.py
       - name: pytest with coverage (fail under 85%)
-        run: pytest tests/ --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov-report=term-missing
+        env:
+          CMGP_STORAGE__POSTGRES_DSN: postgresql://cmgp:cmgp@localhost:5432/cmgp
+        run: pytest tests/ --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov-report=term-missing

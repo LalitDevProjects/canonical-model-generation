@@ -21,6 +21,8 @@ from pathlib import Path
 from uuid import UUID
 
 from generated.C4.CorpusManifest._1_0 import C4Corpusmanifest
+from generated.C5.AttributeRecord._1_0 import C5Attributerecord
+from generated.C11.JournalEvent._1_0 import C11Journalevent
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -52,3 +54,56 @@ class RunStore:
         path = self.run_dir(run_id) / "S1" / "corpus_manifest.json"
         raw = json.loads(path.read_text(encoding="utf-8"))
         return C4Corpusmanifest.model_validate(raw)
+
+    def write_attributes(self, run_id: UUID, region: str, records: list[C5Attributerecord]) -> Path:
+        """`run-store/{runId}/S3/attributes/{region}.jsonl` - the storage
+        layout's literal path ("C5 records, sharded by region"). A
+        single-shot overwrite of the whole shard, matching
+        write_corpus_manifest's own "compute everything, write once"
+        style - the caller (substrate/ingest.py) accumulates every
+        record for a region across an ingest run before calling this
+        once per region, rather than this method supporting incremental
+        appends itself."""
+        stage_dir = self.run_dir(run_id) / "S3" / "attributes"
+        stage_dir.mkdir(parents=True, exist_ok=True)
+        destination = stage_dir / f"{region}.jsonl"
+        lines = (json.dumps(record.model_dump(mode="json"), sort_keys=True) for record in records)
+        destination.write_text("\n".join(lines) + ("\n" if records else ""), encoding="utf-8")
+        return destination
+
+    def read_attributes(self, run_id: UUID, region: str | None = None) -> list[C5Attributerecord]:
+        """region=None reads every region's shard, concatenated."""
+        stage_dir = self.run_dir(run_id) / "S3" / "attributes"
+        paths = [stage_dir / f"{region}.jsonl"] if region is not None else sorted(stage_dir.glob("*.jsonl"))
+        records: list[C5Attributerecord] = []
+        for path in paths:
+            if not path.exists():
+                continue
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line:
+                    records.append(C5Attributerecord.model_validate(json.loads(line)))
+        return records
+
+    def append_journal_event(self, run_id: UUID, event: C11Journalevent) -> Path:
+        """`run-store/{runId}/journal.jsonl` - append-only, unlike
+        write_attributes: the journal is a genuine incremental event log
+        (Section 3.5: "JSON Lines so that a run of several hundred
+        thousand events streams rather than loads"), written once per
+        event as it happens, not sealed all at once at a stage boundary."""
+        path = self.run_dir(run_id) / "journal.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event.model_dump(mode="json"), sort_keys=True) + "\n")
+        return path
+
+    def next_journal_seq(self, run_id: UUID) -> int:
+        """The next monotonically-increasing seq value for this run's
+        journal - the existing line count (0 for a run with no journal
+        yet). A caller appending its own event supplies this as
+        C11Journalevent.seq; not itself atomic against concurrent
+        appends, matching this store's existing single-writer-per-run
+        scope everywhere else (write_corpus_manifest, write_attributes)."""
+        path = self.run_dir(run_id) / "journal.jsonl"
+        if not path.exists():
+            return 0
+        return len(path.read_text(encoding="utf-8").splitlines())

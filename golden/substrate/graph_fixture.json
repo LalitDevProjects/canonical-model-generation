@@ -1,0 +1,84 @@
+{
+  "description": "Increment 5's hand-authored deep-graph layer for the four-hop lineage acceptance test. Cluster/AcordConcept/Candidate/Release/Decision have zero real producers until Increments 7-9, so this is deliberately synthetic (not derived from a real pipeline run) - the AcordConcept in particular is a made-up reference, since real ACORD Reference Architecture data is unlicensed/unavailable in this repo. The Cluster's member.attributeId is the one REAL attributeId in this fixture: it must exactly match what parsers/xsd.py produces for golden/xsd/uk/ClaimNotification.xsd's claimReferenceCode field when ingested with artefactId 'claims-uk-notification' (see tests/substrate/test_acceptance.py) - loaded via the same graph.write_node/write_edge functions substrate/ingest.py itself calls, not a parallel test-only writer.",
+  "seed_attribute_id": "attr://uk/claims-uk-notification/ClaimNotification.claimReferenceCode",
+  "seed_candidate_id": "canon://Claim.claimReference",
+  "nodes": [
+    {
+      "node_id": "cluster://claims/claim-reference",
+      "node_type": "Cluster",
+      "properties": {
+        "clusterId": "cluster://claims/claim-reference",
+        "proposedConcept": "claimReference",
+        "confidence": 0.92
+      }
+    },
+    {
+      "node_id": "acord://Claim.ClaimNumber",
+      "node_type": "AcordConcept",
+      "properties": {
+        "acord_ref": "Claim.ClaimNumber",
+        "model": "Claims",
+        "entity": "Claim",
+        "attribute": "ClaimNumber"
+      }
+    },
+    {
+      "node_id": "canon://Claim.claimReference",
+      "node_type": "Candidate",
+      "properties": {
+        "candidateId": "canon://Claim.claimReference",
+        "entity": "Claim",
+        "attribute": "claimReference",
+        "placement": "core",
+        "weight": 5
+      }
+    },
+    {
+      "node_id": "decision://d-claims-1.0.0",
+      "node_type": "Decision",
+      "properties": {
+        "decision_id": "d-claims-1.0.0",
+        "kind": "ratify",
+        "sme": "jane.doe",
+        "decided_at": "2026-08-31T12:00:00Z"
+      }
+    },
+    {
+      "node_id": "release://claims/1.0.0",
+      "node_type": "Release",
+      "properties": {
+        "domain": "claims",
+        "semver": "1.0.0",
+        "signed_at": "2026-08-31T12:00:00Z"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from_id": "attr://uk/claims-uk-notification/ClaimNotification.claimReferenceCode",
+      "to_id": "cluster://claims/claim-reference",
+      "edge_type": "MEMBER_OF"
+    },
+    {
+      "from_id": "cluster://claims/claim-reference",
+      "to_id": "acord://Claim.ClaimNumber",
+      "edge_type": "ALIGNS_TO",
+      "properties": { "verdict": "fit" }
+    },
+    {
+      "from_id": "cluster://claims/claim-reference",
+      "to_id": "canon://Claim.claimReference",
+      "edge_type": "PRODUCED"
+    },
+    {
+      "from_id": "canon://Claim.claimReference",
+      "to_id": "decision://d-claims-1.0.0",
+      "edge_type": "RATIFIED_BY"
+    },
+    {
+      "from_id": "canon://Claim.claimReference",
+      "to_id": "release://claims/1.0.0",
+      "edge_type": "RELEASED_IN"
+    }
+  ]
+}
