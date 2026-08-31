@@ -39,7 +39,7 @@ increments (Section 17), in order: contracts before code, the sanitisation
 gate before any real evidence moves, deterministic components before
 probabilistic (agent) ones, coverage before emission.
 
-**Increments 1 through 8 are complete.** Increment 1 ("Skeleton and
+**All nine increments are complete.** Increment 1 ("Skeleton and
 contracts"): repository layout, CI, `mypy --strict`, all eleven data
 contracts as JSON Schema with generated Pydantic models, cross-artefact
 invariant validators, and a fixture suite. Increment 2 ("Connectors and
@@ -73,7 +73,14 @@ though its own guardrail routes every real run in this repo to Section
 unavailable since Increment 1) and Canonical Synthesiser proposing
 canonical attributes with the code - not the model - supplying
 placement, obligation strength and vendor-only flagging outright, plus
-real coverage computation, gap register and Gate 1/2/3 evaluation. See
+real coverage computation, gap register and Gate 1/2/3 evaluation.
+Increment 9 ("Emission and workshop pack", the final increment): the
+mapping specification DSL (grammar, a 14-entry closed transform library,
+a real compiler enforcing T1-T4 plus a builder-added D1, a reference
+interpreter with a real `reverse()` the spec itself never shows), Mapping
+Generator (the twelfth and final agent), and `emit/`'s real, validating
+JSON Schema/OpenAPI/logical-model/release-manifest emitters, assembled
+into a concrete workshop pack an SME can run a real session from. See
 `docs/contracts.md` and `docs/increments.md` for the full
 per-increment record.
 
@@ -106,21 +113,23 @@ canonical-model-generation/
   substrate/             Chunking, embeddings, vector + concept graph, substrate-api (Increment 5 - built, real Postgres + pgvector)
   pipeline/               Orchestration: run store persistence, journal, triage export (Increments 2-7 - built), state machine (out of PoC scope - see docs/increments.md)
   algorithms/            Attribute profiling (I3); blocking, similarity, graph, conflict classification, clustering (I7, zero LLM dependency); naming, placement, coverage + gap register (I8 - built)
-  mapping/               Mapping DSL: grammar, transform library, round-trip tests (Increment 9)
-  emit/                   Schema/OpenAPI emitters, logical model export, registry (Increment 9)
+  mapping/               Mapping DSL: grammar, 14-entry transform library, compiler (T1-T4+D1), reference interpreter, round-trip test generation (Increment 9 - built)
+  emit/                   Entity/extension/common JSON Schema emitters, OpenAPI projection, JSON-LD logical model export, release manifest, workshop pack assembly (Increment 9 - built)
   api/                    Internal service APIs (run control, registry, workshop) (Increment 12)
-  golden/                Golden corpus, built incrementally (Increments 2-8 - see golden/README.md)
+  golden/                Golden corpus, built incrementally (Increments 2-9 - see golden/README.md)
   eval/                  Agent evaluation harness: thresholds, worst-of-5 gating (Increment 7 - built, for Semantic Resolver)
   infra/                 docker-compose.yml (local Postgres + pgvector, Increment 5)
   docs/                   Detailed documentation, updated alongside contract/agent changes
   tests/
-    agents/                Agent ABC, model gateway, prompt render, validation ladder, Repository Scout, Schema Interpreter, Semantic Resolver, ACORD Aligner, Canonical Synthesiser, I6/I7/I8 acceptance tests
+    agents/                Agent ABC, model gateway, prompt render, validation ladder, Repository Scout, Schema Interpreter, Semantic Resolver, ACORD Aligner, Canonical Synthesiser, Mapping Generator, I6/I7/I8/I9 acceptance tests
     algorithms/            Profiling, blocking, similarity, conflict, clustering, naming, placement, coverage tests, I7/I8 acceptance tests
     connectors/            Connector, relevance-filter, manifest, and golden-corpus e2e tests
     contracts/            Schema + generated-model fixture and invariant tests
+    emit/                   Schema/OpenAPI/logical-model/release-manifest/workshop-pack tests, I9 acceptance test
     eval/                  Eval harness tests (worst-of-5 gating, real-model llm test)
     fixtures/              Per-contract positive/negative fixtures, invariant bundles
     gate/                  Detectors, tokenisation, policy, ledger, Increment 4 acceptance tests
+    mapping/               Transform library, parser, compiler, interpreter, round-trip generation tests
     substrate/             Chunking, embedding, graph, search, ingest, api, Increment 5 acceptance tests (mostly pytest.mark.db)
     tools/                 Tool gateway authorisation/schema/journalling tests
     parsers/               Parser, type-normalisation, and router tests
@@ -189,7 +198,7 @@ CI fails the build if `generated/` doesn't match what
 pytest
 
 # Run with coverage report (fails under 85%, per pyproject.toml)
-pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov=eval --cov-report=term-missing
+pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov=eval --cov=mapping --cov=emit --cov-report=term-missing
 
 # Run just the contract/fixture tests
 pytest tests/contracts/
@@ -221,6 +230,13 @@ pytest tests/eval/
 # on a seeded unresolved mandatory attribute) - zero LLM, zero DB
 pytest tests/algorithms/test_coverage_acceptance.py
 
+# Run just the Increment 9 acceptance test (emitted schemas validate, round-trip
+# tests pass or declare their loss, workshop pack complete) - zero LLM, zero DB
+pytest tests/emit/test_i9_acceptance.py
+
+# Run the mapping DSL / compiler / interpreter / round-trip generator tests
+pytest tests/mapping/
+
 # Run the tests requiring a real Anthropic API call (skip cleanly without ANTHROPIC_API_KEY)
 pytest -m llm
 ```
@@ -228,9 +244,9 @@ pytest -m llm
 ### Development
 
 ```bash
-mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools eval tests
-black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ tests/ scripts/
-isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ tests/ scripts/
+mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools eval mapping emit tests
+black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ mapping/ emit/ tests/ scripts/
+isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ mapping/ emit/ tests/ scripts/
 ```
 
 ## Configuration
@@ -419,5 +435,5 @@ See `CONTRIBUTING.md` for development guidelines.
 
 ---
 
-**Status**: Draft for Technical Review (v0.1) - Increments 1-8 of 9 (PoC Build Guide, Section 17) complete
+**Status**: Draft for Technical Review (v0.1) - Increments 1-9 of 9 (PoC Build Guide, Section 17) complete. Honestly out of scope even so: Section 12's run-control/registry/workshop HTTP service APIs, the S1-S8 orchestrator state machine, and ACORD Reference Architecture content (unlicensed since Increment 1) - see `docs/increments.md`'s Increment 9 section for the full completion-boundary note.
 **Last Updated**: 1 September 2026

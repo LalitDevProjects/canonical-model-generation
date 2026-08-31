@@ -16,7 +16,7 @@ emission.
 | I6 | Agent runtime | **Complete** | A denied tool call is journalled and refused; a schema violation retries then escalates; the planted injection string changes nothing |
 | I7 | Clustering and conflicts | **Complete** | Planted synonyms cluster; the planted homonym does not merge; evaluation harness meets the Semantic Resolver thresholds |
 | I8 | Synthesis and coverage | **Complete** | Coverage is computed with a published denominator; Gate 1 blocks correctly on a seeded unresolved mandatory attribute |
-| I9 | Emission and workshop pack | Not started | Emitted schemas validate; every round-trip test passes or its loss is declared; the pack is complete enough to run a real session from |
+| I9 | Emission and workshop pack | **Complete** | Emitted schemas validate; every round-trip test passes or its loss is declared; the pack is complete enough to run a real session from |
 
 ## I1 - what was built
 
@@ -730,6 +730,200 @@ under-specified agents from scratch.
   attribute" -> same test - the seeded `cluster://loss-date` concept
   yields `gate1Pass is False` and a `gap_register()` entry with
   `reason="unresolved"`.
+
+## I9 - what was built
+
+- **The final increment of the 9-increment PoC.** No `AskUserQuestion`
+  round was needed - unlike I7's clustering-architecture fork and I8's
+  ACORD-Aligner-scope fork, the acceptance test's own three clauses
+  directly dictate building the full mapping DSL/compiler/interpreter/
+  transform-library/emitters/workshop-pack for real; there was no genuine
+  architectural fork to choose between, only implementation judgment
+  calls (documented below, not asked).
+- **A genuine contract gap, same rigor as I4/I6/I7/I8's own fixes**:
+  `contracts/C10/MappingSpec/1.0.json`'s `tests` field was a placeholder
+  array at Increment 1 ("populated by Increment 9's
+  generate_round_trip_tests()"). Appendix C's own worked example shows
+  `tests.roundTrip` as an **aggregate summary object**
+  (`generated`/`assertion`/`declaredLosses`/`result`), not one row per
+  synthesised seed - fixed to that real, structured shape. Regenerated,
+  verified byte-reproducible across two runs, new positive/negative
+  fixtures added, every pre-existing C10 fixture confirmed to pass
+  unmodified.
+- **`mapping/interpreter.py::Plan.reverse()` - a real spec gap, resolved
+  symmetrically.** Section 10.6's own reference interpreter shows
+  `forward()` in full but `reverse()` is only ever *referenced* (by
+  Section 10.5's own round-trip pseudocode), never given a body.
+  `reverse()` walks the same steps, applies each transform's declared
+  reverse callable (`mapping/transforms.py`) in reverse chain order, and
+  reuses the identical `on_failure` dispatch. Two transforms have no
+  reverse at all (`coalesce`, `constant` used as an entry's own top-level
+  transform - the spec's own "Reverse is undefined" / "n/a" table
+  entries): such a step is marked non-reversible at compile time and
+  `reverse()` skips it silently rather than raising, since it is a
+  structural, not a data, condition. `constant("GBP")` appearing as a
+  *nested argument* (Appendix C's own
+  `toMonetaryAmount(currency=constant("GBP"))`) is a different thing
+  entirely, resolved by `mapping/parser.py` to a plain literal at parse
+  time - not an invocation of the `constant` transform at all.
+- **A second, genuinely undocumented gap in the grammar itself**: Section
+  10.2's EBNF defines no `default:` value field for an entry at all, yet
+  Section 10.6's own `_handle()` pseudocode has an `onFailure: default`
+  branch that writes one. Since the DSL gives no way to author a default
+  value, `Plan._handle()` writes `None` - the only default the grammar
+  can express - documented plainly rather than inventing an unspecified
+  field.
+- **A builder-added static check, D1**, beyond the spec's literal T1-T4:
+  `compile_spec()` rejects a bidirectional entry whose transform chain
+  contains `coalesce` or a top-level `constant` (both have no reverse),
+  since a bidirectional spec's own promise cannot be kept for that entry.
+- **The transform library's own "Reverse" column names five functions
+  that are never themselves legal `transform:` line names** (formatDate's
+  counterpart is `parseDate`, a real row - fine - but `toLocalDate`,
+  `valueMapInverse`, `amountOf`, `valueOf` and `split` are not among the
+  14 forward-facing names). Implemented as private functions in
+  `mapping/transforms.py`, never registered under their own `TRANSFORMS`
+  key - an SME cannot write `transform: valueOf(...)`, only the
+  interpreter invokes them internally when undoing a step.
+- **`decompose`/`compose` reversibility** required a builder resolution
+  the spec's own worked example never exercises (no decompose/compose
+  usage appears anywhere in Appendix C): both `pattern` (a Python regex
+  with named groups) and `template` (a Python format string) are
+  required on any entry using either transform, even though only one is
+  "forward-relevant" - the other is what makes the step reversible at
+  all.
+- **`coalesce`'s own `[T] -> T` signature** assumes a single, already
+  multi-valued input, not several independent region paths - the
+  grammar's one-`region:`-per-entry design has no room for a multi-path
+  read, and the spec gives no worked coalesce example to resolve this
+  against otherwise. This reference interpreter reads `[T]` from a
+  single `region_path` pointing at an array-shaped source.
+- **`ReleaseManifest` (Section 11.4) is NOT a 12th C-numbered contract.**
+  Appendix A's own contract index closes the list at C11, and
+  `contracts/C11/RunManifest/1.0.json` is a genuinely different *run*
+  record (trigger/budget/state), with no room for `version`/`artefacts`/
+  `coverage`/`conformance`/`decisions`/`approvers`/`signature`. Built
+  instead as a real, hand-written JSON Schema under
+  `emit/schemas/release_manifest.schema.json` - heavier than the
+  `Concept`/`Block`/`ProfiledAttribute` dataclass-only precedent,
+  deliberately, because this artefact is explicitly emitted, signed and
+  externally consumed the way a contract is. Section 6.3's `Release`
+  graph-node type (`substrate/graph.py::ReleaseProps`, Increment 5) turns
+  out to be the graph-lineage projection of this fuller document, not a
+  separate design - both were already documented as "real artefact, not
+  a C-contract" the same status class.
+- **C8's own `dataType` gap (already documented at I8) recurs here**:
+  `emit/schema.py` has no signal that a candidate's real value is a
+  MonetaryAmount or Identifier shape (C8's `dataType` stays the bare
+  primitive enum) - such a candidate emits as a plain `object`, the same
+  honest limitation as I8's `denotes_money`/`denotes_identifier`
+  guardrail wiring, not silently guessed around with a naming heuristic.
+- **No new third-party dependency.** "Emitted schemas validate" is proven
+  with the already-available `jsonschema` library
+  (`Draft202012Validator.check_schema()` against every emitted document,
+  plus real instances validated against the emitted entity schemas) -
+  this repo has added exactly 3 dependencies across 8 prior increments,
+  all load-bearing, and §2.3's own `openapi-spec-validator` mention was
+  never actually added even at Increment 3 (OpenAPI parsing).
+- `mapping/transforms.py`: all 14 closed-vocabulary transforms (Section
+  10.3), each forward function sharing one signature `(value, **kwargs)
+  -> Any` with its (where defined) reverse, so the interpreter dispatches
+  generically in both directions without per-transform special-casing.
+- `mapping/parser.py`: a hand-rolled scanner for Section 10.2's grammar
+  (not a generated parser - the grammar is deliberately tiny), enforcing
+  the 3-call chain limit and resolving the `constant(...)`-as-argument
+  case.
+- `mapping/compiler.py`: `compile_spec()` - T1 Totality, T2 weight rule,
+  T3 type fit, T4 value-map completeness (plus its own injectivity
+  check), D1. `canonical: CanonicalModel` (the spec's own pseudocode
+  parameter - no such type exists anywhere in this repo) is resolved as
+  a plain `{canonicalPath: dataType}` projection the caller builds from
+  whatever C8 candidates are in hand; T3 is skipped, not failed, for a
+  canonical path with no known type yet.
+- `agents/mapping_generator.py`: the twelfth and final agent (Appendix
+  B). One invocation covers one whole region contract (the prompt's own
+  `[INPUT]` block passes the complete, in-scope attribute list), a
+  different granularity than ACORD Aligner/Canonical Synthesiser's own
+  per-cluster calls - which is what makes G1 (Totality) a real,
+  per-invocation guardrail here (implemented via `validate_semantics`,
+  since `Guardrail.check` has no access to the agent instance, the same
+  framework constraint I8 already documented). G2-G5 are real, stateless
+  V4 guardrails reusing `mapping/parser.py`/`mapping/transforms.py`
+  directly. Unlike ACORD Aligner/Canonical Synthesiser's own worked
+  prompts (both missing an `[INJECTION]` block at I8, fixed by adding
+  one), Appendix B's own prompt text already has a real one - transcribed
+  verbatim, no fix needed.
+- `emit/schema.py`, `emit/common_schemas.py`: one JSON Schema per entity
+  from real C8 data (core attributes only; extension attributes are never
+  inlined, only `$ref`-referenced), the six static `common/` documents,
+  and `serialise()` - sorted keys, two-space indent, LF endings, written
+  as bytes (never a text-mode file handle) so no platform substitutes
+  CRLF.
+- `emit/openapi.py`: a pure projection - `components.schemas` is bare
+  `$ref`s into the entity schemas, `paths: {}` (Section 12's HTTP APIs
+  stay out of scope).
+- `emit/logical_model.py`: Section 11.3's JSON-LD export, built from real
+  C8 data plus two caller-supplied maps (evidence-by-candidate,
+  alignment-by-entity) this module has no way to derive on its own -
+  keeping it fully hermetic. `ratifiedBy.session` substitutes
+  `ratification.decidedAt` (no session-naming field exists anywhere in
+  this repo's data model), the same class of honest substitution as
+  `algorithms/coverage.py::sole_region()`'s own tie-break.
+- `emit/release.py` + `emit/schemas/release_manifest.schema.json`:
+  `ReleaseManifest`, `build_release_manifest()`,
+  `validate_release_manifest()`. `signature` is a caller-supplied PoC
+  placeholder - no real signing infrastructure exists in this repo, the
+  same status `EgressConfig.ledger_signing_key` already carries.
+- `emit/workshop_pack.py`: `assemble_pack()` - a real directory of files
+  plus one indexing `WorkshopPackManifest` (sha256 + description per
+  file, a `declaredLosses` roll-up pulled from every compiled mapping
+  spec's own round-trip summary). Writes a real, labelled
+  `acord-alignment.md` manual-completion section (Section 19.2's own
+  degraded-mode language), since ACORD data has been unavailable since
+  Increment 1 - the gap is shown honestly, not silently omitted or
+  faked.
+- `golden/mapping/`: `region_attributes.json` (7 real C5 AttributeRecord
+  entries) + `uk-claims-v3.mapping.json` (Appendix C's own worked mapping
+  spec, transcribed as real C10 JSON) - one entry
+  (`coveragesInForce[].limit`) flattened to a non-array path
+  (`coverageLimit`/`Cover.LimitAmount`), since the reference
+  interpreter's own `read_path`/`write_path` do not resolve `[]`
+  segments (a documented PoC scope boundary, not a defect). Reuses
+  `golden/coverage/{candidates,clusters}.json` (Increment 8's own golden
+  data) directly for the emission side rather than duplicating a
+  parallel fixture set.
+- 973 tests passing (up from 807 at I8), `mypy --strict` clean across
+  199 source and test files (matching the CI invocation), ~97% coverage
+  overall (100% within `mapping/` and `emit/`, the packages this
+  increment added).
+- Acceptance-test clause mapping (`tests/emit/test_i9_acceptance.py`):
+  "Emitted schemas validate" -> every entity/extension/OpenAPI document
+  passes `Draft202012Validator.check_schema()`, and a real candidate
+  instance validates against its own emitted entity schema. "Every
+  round-trip test passes or its loss is declared" -> the golden
+  `uk-claims-v3` mapping spec compiles and round-trips with zero
+  undeclared losses, its one real declared loss
+  (`ClaimHeader.LossDate`, kind `precision`) matching Appendix C's own
+  worked outcome exactly. "The pack is complete enough to run a real
+  session from" -> `assemble_pack()` over the same golden data writes
+  every manifest-listed file with a matching sha256, including at least
+  one schema per entity, a passing mapping spec, the real coverage
+  report/gap register, the release manifest, and the ACORD manual-
+  completion section.
+- **Honestly out of scope, even after this final increment**: Section
+  12's run-control/registry/workshop HTTP service APIs
+  (`api/README.md`'s own Increment 12 deferral, unchanged since
+  Increment 1 - I9 produces the file artefacts those services would
+  eventually serve, never the services themselves); the S1-S8
+  orchestrator state machine (`agents/base.py::route()` remains the
+  identity stub it has been since Increment 6 - no increment's
+  acceptance test through I9 ever required a real one); ACORD Reference
+  Architecture content (permanently unlicensed since Increment 1); a
+  live re-proof of the recursive-CTE lineage query (proven once, for
+  real, at Increment 5 via `pytest.mark.db` - I9's logical-model export
+  only has to produce documents *consistent with* what that query would
+  return); `RunManifest.state` as a closed enum (still an open string -
+  no orchestrator state machine was ever built to enumerate against).
 
 ## Decisions locked in for the rebuild (apply across all increments unless revisited)
 

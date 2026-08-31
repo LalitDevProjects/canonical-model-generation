@@ -51,7 +51,7 @@ agent-runtime code was written.
 | C8 | CanonicalCandidate | `contracts/C8/CanonicalCandidate/1.0.json` | Renamed from an earlier hand-written `Candidate`. `vendorOnly` (optional, default `false`) added at Increment 8 (see below) |
 | C9 | CoverageReport | `contracts/C9/CoverageReport/1.0.json` | Transcribed from the `coverage()` function body (Section 9.8). Genuinely populated as of Increment 8 (`algorithms/coverage.py::coverage`) - every field the real producer needed already existed; no schema change was required |
 | C9 | GapEntry | `contracts/C9/GapEntry/1.0.json` | **Interpreted, not verbatim spec** - only a one-line API reference exists (`GET /gaps -> {gaps: [GapEntry]}`), no field definition. Fully synthesized at Increment 1. Genuinely populated as of Increment 8 (`algorithms/coverage.py::gap_register`) - the existing shape (`conceptId` as "ConceptCluster or CanonicalCandidate reference," `reason` enum `unresolved`/`unevidenced`/`excluded`/`below-region-floor`) turned out to already be sufficient; no schema change was needed |
-| C10 | MappingSpec | `contracts/C10/MappingSpec/1.0.json` | **Interpreted, not verbatim spec** - the spec gives an EBNF grammar for a YAML-like DSL (Section 10.2), not a JSON Schema; this is a translation into the parsed-document shape. `mappings[].oneOf(transform, disposition)` encodes invariant I5. Revisit at Increment 9. |
+| C10 | MappingSpec | `contracts/C10/MappingSpec/1.0.json` | **Interpreted, not verbatim spec** - the spec gives an EBNF grammar for a YAML-like DSL (Section 10.2), not a JSON Schema; this is a translation into the parsed-document shape. `mappings[].oneOf(transform, disposition)` encodes invariant I5. `tests.roundTrip` (`generated`/`assertion`/`declaredLosses`/`result`) replaced the Increment 1 placeholder array at Increment 9, matching Appendix C's own worked-example shape exactly (an aggregate summary, not one row per synthesised seed) |
 | C11 | RunManifest | `contracts/C11/RunManifest/1.0.json` | Transcribed from the Section 3.6 worked example. `state` is an open string, not a closed enum, since no exhaustive state list exists until the Increment 6 state machine is built |
 | C11 | JournalEvent | `contracts/C11/JournalEvent/1.0.json` | Transcribed from the Section 3.6 worked example. `kind` gained `"tool.denied"` at Increment 6, plus optional `tool`/`detail` fields (see below) |
 
@@ -130,9 +130,24 @@ schema independently of the graph write path itself.
 ## Known design gaps to close in later increments
 
 - C9.GapEntry and C10 are synthesized/interpreted rather than
-  spec-verbatim (see table above) - revisit once the increment that
-  consumes each one (I8, I9 respectively) is implemented for real. C2 was
-  in the same position until Increment 4, which implemented the gate that
-  actually populates it.
+  spec-verbatim (see table above). Both are now genuinely populated
+  (I8's `gap_register()`, I9's `mapping/roundtrip.py::generate_round_trip_tests`
+  writing back `tests.roundTrip`); their shapes turned out sufficient once
+  each increment's real producer existed, matching C2's own Increment 2 to
+  Increment 4 arc.
 - `RunManifest.state` will likely become a closed enum once Increment 6's
-  state machine defines the full state list.
+  state machine defines the full state list. Still true as of Increment 9
+  - no S1-S8 orchestrator state machine was ever built (out of this PoC's
+  scope; see `docs/increments.md`'s I9 completion-boundary note).
+- The `ReleaseManifest` artefact (Section 11.4's worked example - `domain`/
+  `version`/`runId`/`corpusHash`/`pins`/`artefacts`/`coverage`/
+  `conformance`/`decisions`/`approvers`/`signature`) is **not** a 12th
+  C-numbered contract - Appendix A's own contract index closes the list at
+  C11, and `C11.RunManifest` is a genuinely different *run* record
+  (trigger/budget/state), not this *release* record. Built at Increment 9
+  as a hand-written schema under `emit/schemas/release_manifest.schema.json`
+  instead, the same "real artefact, not a C-contract" status as Section
+  6.3's `Release` graph-node type (`substrate/graph.py::ReleaseProps`,
+  Increment 5) - that node's three fields (`domain`/`semver`/`signedAt`)
+  are the graph-lineage projection of this fuller emitted document, not a
+  separate design.

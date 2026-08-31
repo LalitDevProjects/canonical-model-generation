@@ -9,6 +9,7 @@ from config.settings import (
     EgressConfig,
     Environment,
     FeatureFlags,
+    MappingConfig,
     ModelProvider,
     ModelTierConfig,
     PlatformSettings,
@@ -137,6 +138,18 @@ def test_coverage_config_defaults_when_omitted() -> None:
     cfg = CoverageConfig()
     assert cfg.region_floor == 0.85
     assert cfg.domain_target == 0.90
+
+
+def test_mapping_config_loads_spec_verbatim_values() -> None:
+    settings = load_settings()
+    assert settings.mapping.round_trip_n == 24
+    assert settings.mapping.critical_weight == 5
+
+
+def test_mapping_config_defaults_when_omitted() -> None:
+    cfg = MappingConfig()
+    assert cfg.round_trip_n == 24
+    assert cfg.critical_weight == 5
 
 
 def _valid_egress_payload(**overrides: object) -> dict[str, object]:

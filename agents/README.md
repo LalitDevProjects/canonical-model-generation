@@ -79,6 +79,27 @@ two real agents proving it end to end.
   `contracts/C8/CanonicalCandidate/1.0.json`'s all-required-fields
   schema has no direct way to represent.
 
+- `mapping_generator.py` (Increment 9) - Mapping Generator (Appendix B),
+  the twelfth and final agent. One invocation covers one whole region
+  contract (the prompt's own `[INPUT]` block passes the complete,
+  in-scope attribute list), a different granularity than ACORD
+  Aligner/Canonical Synthesiser's own per-cluster calls - which is what
+  makes G1 (Totality) a real, per-invocation guardrail here, implemented
+  via `validate_semantics` since `Guardrail.check` has no access to the
+  agent instance (the same framework constraint I8's own G1 checks
+  already document). G2 (closed transform vocabulary) and G4 (lossy
+  transform requires a note) reuse `mapping/parser.py`/
+  `mapping/transforms.py` directly; G3 is deliberately the same rule as
+  `mapping/compiler.py`'s own T2, restated as an early per-invocation
+  gate. Unlike ACORD Aligner/Canonical Synthesiser's own worked prompts
+  (both missing an `[INJECTION]` block, fixed at Increment 8), Appendix
+  B's own prompt text already has a real one - no fix needed.
+  `make_mapping_generator_factory(ctx)` is a factory, the same shape as
+  `make_canonical_synthesiser_factory` - unlike that one, there is no
+  legitimate "no output" outcome here (Rule 1's totality means every
+  invocation must produce a full spec), so `WorkItemFailed` propagates
+  to the caller rather than being caught and downgraded.
+
 See `docs/increments.md` for what each increment built and verified
 (including the real Anthropic API decision and the `tool.denied`
 contract gap Increment 6 closed, Increment 7's empirically-found

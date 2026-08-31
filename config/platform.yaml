@@ -122,6 +122,13 @@ coverage:
     extension: 0.5
     gap: 0.0
 
+# Round-trip test generation (Section 10.5). round_trip_n is the spec's own
+# generate_round_trip_tests(n=24) default; critical_weight is the spec's
+# own literal "weight >= 5" round-trip-loss criticality threshold.
+mapping:
+  round_trip_n: 24
+  critical_weight: 5
+
 # Dotted spelling matches the spec's own Section 15.3 flag names; translated
 # to snake_case by FeatureFlags.from_dotted (config/settings.py) before
 # PlatformSettings is constructed.

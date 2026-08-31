@@ -1,0 +1,30 @@
+{
+  "header": {
+    "mappingSpecId": "mapping-uk-claims-v3",
+    "canonicalRef": "canon://claims/1.0",
+    "direction": "bidirectional",
+    "generatedFrom": {
+      "run": "b0f2e7c4-9a11-4d2e-8f30-6c5b7d1e2a44",
+      "corpusManifest": "sha256:9f2c8ab41d77e0356c1fbb2093ea5d18e41b",
+      "agent": "mapping-generator/1.4.0"
+    }
+  },
+  "mappings": [
+    {
+      "canonical": "claimReference",
+      "region": "ClaimHeader.ClaimNo",
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimHeader/properties/ClaimNo"],
+      "transform": "toIdentifier(scheme='urn:client:uk:claim', issuer='uk-claims')",
+      "obligation": { "canonical": "mandatory", "region": "mandatory" },
+      "weight": 5,
+      "onFailure": "reject"
+    }
+  ],
+  "tests": {
+    "roundTrip": {
+      "generated": 24,
+      "assertion": "no attribute with weight >= 5 is lost region -> canonical -> region",
+      "declaredLosses": []
+    }
+  }
+}

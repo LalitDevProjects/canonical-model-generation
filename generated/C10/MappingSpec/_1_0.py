@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import IntEnum, StrEnum
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -103,6 +103,41 @@ class ValueMaps(BaseModel):
     unmappedValues: UnmappedValues | None = None
 
 
+class DeclaredLoss(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    path: str
+    kind: str
+    detail: str
+
+
+class Result(StrEnum):
+    pass_ = 'pass'
+    fail = 'fail'
+
+
+class RoundTrip(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    generated: Annotated[int, Field(ge=1)]
+    assertion: str
+    declaredLosses: list[DeclaredLoss]
+    result: Result
+
+
+class Tests(BaseModel):
+    """
+    Populated by Increment 9's generate_round_trip_tests(). Shape matches Appendix C's worked example: an aggregate summary of the generated round-trip run, not one row per synthesised seed.
+    """
+
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    roundTrip: RoundTrip | None = None
+
+
 class GeneratedFrom(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -164,7 +199,7 @@ class Mappings1(BaseModel):
 
 class C10Mappingspec(BaseModel):
     """
-    INTERPRETED, NOT VERBATIM SPEC: the spec gives an EBNF grammar for a YAML-like mapping DSL (Section 10.2) plus a worked example, not a JSON Schema. This schema is my translation of that grammar into the parsed-document shape, since the contract catalogue (Section 3.1) states all eleven contracts are published as JSON Schema 2020-12. Revise once Increment 9 (mapping DSL) implements the actual grammar parser/interpreter. The mappings[].oneOf(transform, disposition) directly encodes invariant I5: every entry carries either a transform (mapped) or a disposition with status unmapped/escalated and a reason - omission is a validation error.
+    INTERPRETED, NOT VERBATIM SPEC: the spec gives an EBNF grammar for a YAML-like mapping DSL (Section 10.2) plus a worked example, not a JSON Schema. This schema is my translation of that grammar into the parsed-document shape, since the contract catalogue (Section 3.1) states all eleven contracts are published as JSON Schema 2020-12. The mappings[].oneOf(transform, disposition) directly encodes invariant I5: every entry carries either a transform (mapped) or a disposition with status unmapped/escalated and a reason - omission is a validation error. tests.roundTrip populated at Increment 9, shape per Appendix C's worked example.
     """
 
     model_config = ConfigDict(
@@ -173,7 +208,7 @@ class C10Mappingspec(BaseModel):
     header: Header
     mappings: Annotated[list[Mappings | Mappings1], Field(min_length=1)]
     valueMaps: dict[str, ValueMaps] | None = None
-    tests: list[dict[str, Any]] | None = None
+    tests: Tests | None = None
     """
-    Round-trip test refs. Placeholder shape at Increment 1; populated by Increment 9's generate_round_trip_tests().
+    Populated by Increment 9's generate_round_trip_tests(). Shape matches Appendix C's worked example: an aggregate summary of the generated round-trip run, not one row per synthesised seed.
     """

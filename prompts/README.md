@@ -27,6 +27,14 @@ not silently in production.
   example and its own stated rule, resolved by adding one, matching
   Repository Scout/Semantic Resolver's own established phrasing.
 
+- `mapping-generator/1.4.0.md` (Increment 9) - Appendix B's blocks
+  transcribed verbatim, including its own already-present `[INJECTION]`
+  block - unlike ACORD Aligner/Canonical Synthesiser at Increment 8, the
+  spec's own worked prompt text here already includes one, so no
+  addition was needed. Version `1.4.0` matches the spec's own literal
+  `--- PROMPT mapping-generator/1.4.0 ---` line (see
+  `agents/mapping_generator.py`).
+
 Schema Interpreter has no template here - `model_tier: n/a` means no
 model call, so there is nothing to render (see
 `agents/deterministic.py`).

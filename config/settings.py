@@ -223,6 +223,16 @@ class CoverageConfig(BaseModel):
     resolution_weights: ResolutionWeights = Field(default_factory=ResolutionWeights)
 
 
+class MappingConfig(BaseModel):
+    """Round-trip test generation (Section 10.5). round_trip_n is the
+    spec's own generate_round_trip_tests(n=24) default; critical_weight is
+    the spec's own literal "weight >= 5" threshold for a round-trip loss
+    to be considered critical (Section 10.5's assertion text)."""
+
+    round_trip_n: int = Field(default=24, gt=0)
+    critical_weight: int = Field(default=5, gt=0)
+
+
 def _require_hex64(value: str, field_label: str) -> None:
     if not re.fullmatch(r"[0-9a-f]{64}", value):
         raise ValueError(f"{field_label} must be exactly 64 lowercase hex characters (32 bytes)")
@@ -324,6 +334,7 @@ class PlatformSettings(BaseSettings):
     relevance: RelevanceConfig
     clustering: ClusteringConfig = Field(default_factory=ClusteringConfig)
     coverage: CoverageConfig = Field(default_factory=CoverageConfig)
+    mapping: MappingConfig = Field(default_factory=MappingConfig)
 
 
 def load_settings(yaml_path: Path | None = None) -> PlatformSettings:

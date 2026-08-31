@@ -1,0 +1,38 @@
+{
+  "header": {
+    "mappingSpecId": "mapping-uk-claims-v3",
+    "canonicalRef": "canon://claims/1.0",
+    "direction": "bidirectional",
+    "generatedFrom": {
+      "run": "b0f2e7c4-9a11-4d2e-8f30-6c5b7d1e2a44",
+      "corpusManifest": "sha256:9f2c8ab41d77e0356c1fbb2093ea5d18e41b",
+      "agent": "mapping-generator/1.4.0"
+    }
+  },
+  "mappings": [
+    {
+      "canonical": "incident.occurrenceDateTime",
+      "region": "ClaimHeader.LossDate",
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimHeader/properties/LossDate"],
+      "transform": "parseDate(fmt='yyyy-MM-dd') -> instantAtStartOfDay(zone='Europe/London')",
+      "obligation": { "canonical": "mandatory", "region": "mandatory" },
+      "weight": 5,
+      "onFailure": "reject",
+      "note": "DECLARED LOSS. The UK contract carries a local date with no time component. The canonical instant is derived at start of day in Europe/London. Reverse mapping discards the time. Ratified 2026-09-22 by the UK Claims SME."
+    }
+  ],
+  "tests": {
+    "roundTrip": {
+      "generated": 24,
+      "assertion": "no attribute with weight >= 5 is lost region -> canonical -> region",
+      "declaredLosses": [
+        {
+          "path": "ClaimHeader.LossDate",
+          "kind": "precision",
+          "detail": "time component discarded on reverse mapping"
+        }
+      ],
+      "result": "pass"
+    }
+  }
+}

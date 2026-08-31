@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://canonicalmodel.internal/contracts/C10/MappingSpec/1.0.json",
   "title": "C10 MappingSpec",
-  "description": "INTERPRETED, NOT VERBATIM SPEC: the spec gives an EBNF grammar for a YAML-like mapping DSL (Section 10.2) plus a worked example, not a JSON Schema. This schema is my translation of that grammar into the parsed-document shape, since the contract catalogue (Section 3.1) states all eleven contracts are published as JSON Schema 2020-12. Revise once Increment 9 (mapping DSL) implements the actual grammar parser/interpreter. The mappings[].oneOf(transform, disposition) directly encodes invariant I5: every entry carries either a transform (mapped) or a disposition with status unmapped/escalated and a reason - omission is a validation error.",
+  "description": "INTERPRETED, NOT VERBATIM SPEC: the spec gives an EBNF grammar for a YAML-like mapping DSL (Section 10.2) plus a worked example, not a JSON Schema. This schema is my translation of that grammar into the parsed-document shape, since the contract catalogue (Section 3.1) states all eleven contracts are published as JSON Schema 2020-12. The mappings[].oneOf(transform, disposition) directly encodes invariant I5: every entry carries either a transform (mapped) or a disposition with status unmapped/escalated and a reason - omission is a validation error. tests.roundTrip populated at Increment 9, shape per Appendix C's worked example.",
   "type": "object",
   "additionalProperties": false,
   "required": ["header", "mappings"],
@@ -89,9 +89,34 @@
       }
     },
     "tests": {
-      "type": "array",
-      "description": "Round-trip test refs. Placeholder shape at Increment 1; populated by Increment 9's generate_round_trip_tests().",
-      "items": { "type": "object" }
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Populated by Increment 9's generate_round_trip_tests(). Shape matches Appendix C's worked example: an aggregate summary of the generated round-trip run, not one row per synthesised seed.",
+      "properties": {
+        "roundTrip": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["generated", "assertion", "declaredLosses", "result"],
+          "properties": {
+            "generated": { "type": "integer", "minimum": 1 },
+            "assertion": { "type": "string" },
+            "declaredLosses": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "kind", "detail"],
+                "properties": {
+                  "path": { "type": "string" },
+                  "kind": { "type": "string" },
+                  "detail": { "type": "string" }
+                }
+              }
+            },
+            "result": { "type": "string", "enum": ["pass", "fail"] }
+          }
+        }
+      }
     }
   }
 }

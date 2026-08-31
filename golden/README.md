@@ -85,6 +85,22 @@ planted difficulty its own acceptance test needs:
   cross-link it to the unrelated synonym triple, fixed by giving each
   its own parent shape and constraint. See
   `tests/algorithms/test_clustering_acceptance.py`.
+- **Increment 9**: `mapping/region_attributes.json` (7 real C5
+  AttributeRecord entries) + `mapping/uk-claims-v3.mapping.json`
+  (Appendix C's own worked mapping specification, transcribed as real
+  C10 JSON) - a new top-level bucket, same reasoning as every prior
+  increment. One entry is deliberately adapted from Appendix C's own
+  text: `coveragesInForce[].limit` is flattened to a non-array path
+  (`coverageLimit`/`Cover.LimitAmount`), since
+  `mapping/interpreter.py`'s own `read_path`/`write_path` do not resolve
+  `[]` array segments (a documented PoC scope boundary, not a defect -
+  see that module's own docstring). Everywhere else the fixture is
+  textually faithful to Appendix C, including its one declared
+  precision loss on `ClaimHeader.LossDate`. Reuses
+  `golden/coverage/{candidates,clusters}.json` (Increment 8's own golden
+  data) directly for the emission side of the acceptance test, rather
+  than duplicating a parallel candidate/cluster fixture set. See
+  `tests/emit/test_i9_acceptance.py`.
 - Not yet claimed by any increment's acceptance test: granularity
   mismatch, enumeration divergence, obligation inversion,
   undocumented/code-only service.

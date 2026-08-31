@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/emit/schemas/release_manifest.schema.json",
+  "title": "ReleaseManifest",
+  "description": "Section 11.4's worked example, transcribed as a real JSON Schema. NOT a 12th C-numbered contract - Appendix A's own contract index closes the list at C11, and contracts/C11/RunManifest/1.0.json is a genuinely different *run* record (trigger/budget/state), not this *release* record (versioned, signed, artefact list). Lives under emit/ rather than contracts/ because nothing here is codegen'd - the same 'real artefact, not a contract' status as Section 6.3's Release graph-node type (substrate/graph.py::ReleaseProps).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain", "version", "runId", "corpusHash", "pins", "artefacts",
+    "coverage", "conformance", "decisions", "approvers", "signature"
+  ],
+  "properties": {
+    "domain": { "type": "string" },
+    "version": { "type": "string" },
+    "runId": { "type": "string", "format": "uuid" },
+    "corpusHash": { "type": "string" },
+    "pins": { "type": "object" },
+    "artefacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256"],
+        "properties": {
+          "path": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "gate1", "gate2", "gate3"],
+      "properties": {
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "gate1": { "type": "boolean" },
+        "gate2": { "type": "boolean" },
+        "gate3": { "type": "boolean" }
+      }
+    },
+    "conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acord"],
+      "properties": {
+        "acord": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidateId", "outcome", "sme"],
+        "properties": {
+          "candidateId": { "type": "string" },
+          "outcome": { "type": "string" },
+          "sme": { "type": "string" },
+          "session": { "type": "string" }
+        }
+      }
+    },
+    "approvers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "name", "at"],
+        "properties": {
+          "role": { "type": "string" },
+          "name": { "type": "string" },
+          "at": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "signature": { "type": "string" }
+  }
+}

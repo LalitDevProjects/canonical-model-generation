@@ -1,0 +1,97 @@
+{
+  "header": {
+    "mappingSpecId": "mapping-uk-claims-v3",
+    "canonicalRef": "canon://claims/1.0",
+    "direction": "bidirectional",
+    "generatedFrom": {
+      "run": "b0f2e7c4-9a11-4d2e-8f30-6c5b7d1e2a44",
+      "corpusManifest": "sha256:9f2c8ab41d77e0356c1fbb2093ea5d18e41b",
+      "agent": "mapping-generator/1.4.0"
+    }
+  },
+  "mappings": [
+    {
+      "canonical": "claimReference",
+      "region": "ClaimHeader.ClaimNo",
+      "transform": "toIdentifier(scheme='urn:client:uk:claim', issuer='uk-claims')",
+      "obligation": { "canonical": "mandatory", "region": "mandatory" },
+      "weight": 5,
+      "onFailure": "reject",
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimHeader/properties/ClaimNo"]
+    },
+    {
+      "canonical": "incident.occurrenceDateTime",
+      "region": "ClaimHeader.LossDate",
+      "transform": "parseDate(fmt='yyyy-MM-dd') -> instantAtStartOfDay(zone='Europe/London')",
+      "obligation": { "canonical": "mandatory", "region": "mandatory" },
+      "weight": 5,
+      "onFailure": "reject",
+      "note": "DECLARED LOSS. The UK contract carries a local date with no time component. The canonical instant is derived at start of day in Europe/London. Reverse mapping discards the time. Ratified 2026-09-22 by the UK Claims SME.",
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimHeader/properties/LossDate"]
+    },
+    {
+      "canonical": "claimStatus",
+      "region": "ClaimHeader.StatusCd",
+      "transform": "valueMap(map='ClaimStatus.uk')",
+      "obligation": { "canonical": "mandatory", "region": "mandatory" },
+      "weight": 5,
+      "onFailure": "escalate",
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimHeader/properties/StatusCd"]
+    },
+    {
+      "canonical": "coverageLimit",
+      "region": "Cover.LimitAmount",
+      "transform": "toMonetaryAmount(currency=constant(\"GBP\"))",
+      "obligation": { "canonical": "optional", "region": "optional" },
+      "weight": 3,
+      "onFailure": "escalate",
+      "note": "The UK contract carries no currency field. GBP is asserted as a constant because this contract serves UK-domiciled retail business only. Flattened from Appendix C's own array-shaped coveragesInForce[].limit path - the reference interpreter (mapping/interpreter.py) does not resolve [] segments.",
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/Cover/properties/LimitAmount"]
+    },
+    {
+      "canonical": "extensions.uk.mojPortalReference",
+      "region": "ClaimDetail.MOJRef",
+      "transform": "identity",
+      "placement": "extension",
+      "weight": 3,
+      "onFailure": "skip",
+      "note": "UK jurisdiction-specific. No US or EU counterpart; placement rule 4.",
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimDetail/properties/MOJRef"]
+    },
+    {
+      "canonical": null,
+      "region": "ClaimHeader.LegacyBatchId",
+      "disposition": {
+        "status": "unmapped",
+        "reason": "Internal batch correlation identifier used by the overnight settlement job. No external business meaning and no consumer has ever requested it.",
+        "confirmedBy": "UK Claims SME, claims-ratification-2026-09-22"
+      },
+      "weight": 1,
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimHeader/properties/LegacyBatchId"]
+    },
+    {
+      "canonical": null,
+      "region": "ClaimDetail.HandlerNotes",
+      "disposition": {
+        "status": "escalated",
+        "reason": "Free-text handler notes. May contain personal data and has no canonical counterpart. Requires a governance decision on whether any canonical representation is appropriate at all."
+      },
+      "weight": 3,
+      "evidence": ["evref://uk/git/claims-api-openapi@3f9a1c22b0d47e58#/components/schemas/ClaimDetail/properties/HandlerNotes"]
+    }
+  ],
+  "valueMaps": {
+    "ClaimStatus.uk": {
+      "mappings": {
+        "NEW": "NOTIFIED",
+        "OPN": "OPEN",
+        "RPN": "REOPENED",
+        "STL": "SETTLED",
+        "CLS": "CLOSED",
+        "DEC": "DECLINED",
+        "WDR": "WITHDRAWN"
+      },
+      "unmappedValues": "escalate"
+    }
+  }
+}
