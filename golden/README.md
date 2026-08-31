@@ -28,8 +28,17 @@ planted difficulty its own acceptance test needs:
   `tests/connectors/test_golden_corpus_e2e.py` (Increment 2) hard-asserts
   an exact artefact count against everything under `git/` - adding a file
   there would have silently broken an already-passing acceptance test.
-- **Increment 4** (not yet built): planted personal-data example,
-  licence-restricted artefact.
+- **Increment 4**: `gate/uk/claim-with-example.yaml` - the planted
+  personal-data example, carrying the spec's own worked tokenise() input
+  values ("A. Smith", "SW1A 1AA" - Section 5.3) as a `claimant` field's
+  OpenAPI `example`. A new top-level bucket (`gate/`), same reasoning as
+  Increment 3's `xsd/`/`wsdl`/`avro/` - adding it under `git/` would have
+  broken `test_golden_corpus_e2e.py`'s exact artefact-count assertion.
+  The licence-restricted-artefact case needs no new content fixture - it's
+  an artefact-level metadata check, exercised via a
+  `licence_disposition_by_system` override parameter (same pattern
+  `evidence_tier_by_system` already uses); see
+  `tests/gate/test_acceptance.py`.
 - **Increment 6**: planted injection string.
 - **Increment 7**: synonym triple (`lossDate`/`dateOfLoss`/`dateSurvenance`),
   homonym pair (`claimDate` meaning different things per region).

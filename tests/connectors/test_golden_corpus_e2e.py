@@ -29,6 +29,9 @@ from connectors.base import ConnectorScope
 from connectors.confluence_connector import ConfluenceConnector
 from connectors.git_connector import GitConnector
 from connectors.manifest import assemble_corpus_manifest
+from gate.evidence_store import EvidenceStore
+from gate.ledger import LedgerStore
+from gate.policy import load_policy_document
 from pipeline.run_store import RunStore
 
 from conftest import GOLDEN_GIT_DIR, manifest_to_schema_json
@@ -65,16 +68,23 @@ def _registry() -> Registry:
     return Registry().with_resources(resources)
 
 
-def _assemble(git_repo: Path, confluence_dir: Path) -> C4Corpusmanifest:
+def _assemble(git_repo: Path, confluence_dir: Path, tmp_path: Path) -> C4Corpusmanifest:
     settings = load_settings()
     git_connector = GitConnector(git_repo, region="us")
     confluence_connector = ConfluenceConnector(confluence_dir, region="uk")
     scope = ConnectorScope(region="us", domain="claims")
+    ledger_store = LedgerStore(base_path=tmp_path / f"{git_repo.name}-ledger")
+    evidence_store = EvidenceStore(base_path=tmp_path / f"{git_repo.name}-evidence-store")
     return assemble_corpus_manifest(
         run_id=uuid4(),
         domain="claims",
         sources=[(git_connector, scope), (confluence_connector, scope)],
         cfg=settings.relevance,
+        egress_cfg=settings.egress,
+        policy=load_policy_document(expected_version=settings.egress.policy_version),
+        feature_flags=settings.feature_flags,
+        ledger_store=ledger_store,
+        evidence_store=evidence_store,
     )
 
 
@@ -83,15 +93,15 @@ class TestGoldenCorpusEndToEnd:
         repo_1 = _fresh_git_repo(tmp_path, "run-1")
         repo_2 = _fresh_git_repo(tmp_path, "run-2")
 
-        manifest_1 = _assemble(repo_1, golden_confluence_dir)
-        manifest_2 = _assemble(repo_2, golden_confluence_dir)
+        manifest_1 = _assemble(repo_1, golden_confluence_dir, tmp_path)
+        manifest_2 = _assemble(repo_2, golden_confluence_dir, tmp_path)
 
         assert manifest_1.corpusHash == manifest_2.corpusHash
         assert manifest_1.runId != manifest_2.runId
 
     def test_every_excluded_artefact_carries_a_reason(self, tmp_path: Path, golden_confluence_dir: Path) -> None:
         repo = _fresh_git_repo(tmp_path, "run")
-        manifest = _assemble(repo, golden_confluence_dir)
+        manifest = _assemble(repo, golden_confluence_dir, tmp_path)
 
         assert len(manifest.exclusions) == 1
         exclusion = manifest.exclusions[0]
@@ -102,7 +112,7 @@ class TestGoldenCorpusEndToEnd:
 
     def test_kept_artefacts_and_schema_validity(self, tmp_path: Path, golden_confluence_dir: Path) -> None:
         repo = _fresh_git_repo(tmp_path, "run")
-        manifest = _assemble(repo, golden_confluence_dir)
+        manifest = _assemble(repo, golden_confluence_dir, tmp_path)
 
         # 3 regional OpenAPI files (git) + 1 Confluence page (uncertain -> kept)
         assert len(manifest.artefacts) == 4
@@ -114,7 +124,7 @@ class TestGoldenCorpusEndToEnd:
 
     def test_manifest_round_trips_through_run_store(self, tmp_path: Path, golden_confluence_dir: Path) -> None:
         repo = _fresh_git_repo(tmp_path, "run")
-        manifest = _assemble(repo, golden_confluence_dir)
+        manifest = _assemble(repo, golden_confluence_dir, tmp_path)
 
         store = RunStore(base_path=tmp_path / "run-store")
         store.write_corpus_manifest(manifest.runId, manifest)

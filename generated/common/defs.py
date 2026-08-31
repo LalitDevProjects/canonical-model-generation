@@ -113,9 +113,14 @@ class SanitisationVerdict(StrEnum):
 
 
 class ExclusionReason(StrEnum):
+    """
+    policy-blocked added at Increment 4: a gate rejection from any Section 5.4 policy rule OTHER than block-unlicensed (which maps to the more specific licence-blocked).
+    """
+
     out_of_domain = 'out-of-domain'
     superseded = 'superseded'
     licence_blocked = 'licence-blocked'
+    policy_blocked = 'policy-blocked'
     access_denied = 'access-denied'
     unparseable = 'unparseable'
     duplicate = 'duplicate'

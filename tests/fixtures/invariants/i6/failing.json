@@ -7,14 +7,16 @@
       "region": "us",
       "artefactId": "art-claims-openapi-us",
       "contentHash": "042896dc1966b8a6214e5383aba5b8b931cfa049d17aafa37eb8a77c859b95da",
-      "classification": ["STRUCTURAL"],
+      "classification": [
+        "STRUCTURAL"
+      ],
       "verdict": "allow",
       "policyVersion": 3,
       "lawfulBasis": "legitimate-interest",
       "approver": null,
       "runId": "11111111-1111-1111-1111-111111111111",
       "prevHash": null,
-      "hash": "dfd5922f5aa9441e95d21ed58bb9f2209a004912a1232e89f75f725bd37f3d4a",
+      "hash": "8e1bee06d387d636fafdbdfa6a8c2cef91da8d8f2f43e707d510d4f8fb1fd2db",
       "signature": "sig-us-000001"
     },
     {
@@ -23,14 +25,17 @@
       "region": "us",
       "artefactId": "art-claims-openapi-uk",
       "contentHash": "dba0082ec68e72d47fa926dcc91fb9b00961ceb4342554a0c2aa567144a5a6d3",
-      "classification": ["STRUCTURAL", "PERSONAL_DATA"],
+      "classification": [
+        "STRUCTURAL",
+        "PERSONAL_DATA"
+      ],
       "verdict": "mask",
       "policyVersion": 3,
       "lawfulBasis": "legitimate-interest",
       "approver": null,
       "runId": "11111111-1111-1111-1111-111111111111",
       "prevHash": "c1db13ab836db24060490c83b83c089adb1ce9e6e1899d81e02d398cec22e6b1",
-      "hash": "8c09b37123eb0d9dcec63788149e576b1614ed481ad002512d0a47a09cbf59fc",
+      "hash": "0db172a1c059e501d03f6011a0a3725b428dbaa5271aaa457e7e395a4d11938f",
       "signature": "sig-us-000002"
     }
   ],

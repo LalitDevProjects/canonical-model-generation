@@ -8,6 +8,8 @@ directly against minimal in-memory generated-model objects, so every branch
 
 from __future__ import annotations
 
+import hashlib
+
 from generated.C1.SourceArtefact._1_0 import C1Sourceartefact
 from generated.C3.EgressLedgerEntry._1_0 import C3Egressledgerentry
 from generated.C4.CorpusManifest._1_0 import C4Corpusmanifest
@@ -19,12 +21,15 @@ from generated.C10.MappingSpec._1_0 import C10Mappingspec
 
 from contracts.validators import (
     _artefact_id_from_evref,
+    canonical_json_bytes,
     check_i1_evidence_resolvable,
     check_i2_cluster_members_same_run,
     check_i3_candidate_traces_to_attribute,
     check_i4_coverage_scored_attributes_evidenced,
     check_i5_mapping_entries_have_disposition,
     check_i6_ledger_chain_unbroken,
+    ledger_body,
+    sign,
 )
 
 
@@ -288,8 +293,13 @@ class TestI5MappingEntriesHaveDisposition:
 
 
 class TestI6LedgerChainUnbroken:
-    def _entry(self, entry_id: str, prev_hash: str | None, this_hash: str) -> C3Egressledgerentry:
-        return C3Egressledgerentry.model_validate({
+    def _entry(self, entry_id: str, prev_hash: str | None) -> C3Egressledgerentry:
+        """Builds an entry whose `hash` is genuinely
+        sha256(canonical_json_bytes(ledger_body(entry))) - the same
+        recipe check_i6_ledger_chain_unbroken now recomputes - rather
+        than an arbitrary placeholder string, so these tests exercise
+        real integrity verification, not merely prevHash linkage."""
+        entry = C3Egressledgerentry.model_validate({
             "entryId": entry_id,
             "at": "2026-08-31T12:00:00Z",
             "region": "us",
@@ -302,31 +312,53 @@ class TestI6LedgerChainUnbroken:
             "approver": None,
             "runId": RUN_ID,
             "prevHash": prev_hash,
-            "hash": this_hash,
+            "hash": "0" * 64,
             "signature": "sig",
         })
+        real_hash = hashlib.sha256(canonical_json_bytes(ledger_body(entry))).hexdigest()
+        return entry.model_copy(update={"hash": real_hash})
 
     def test_unbroken_chain_passes(self) -> None:
-        e1 = self._entry("e1", None, "a" * 64)
-        e2 = self._entry("e2", "a" * 64, "b" * 64)
+        e1 = self._entry("e1", None)
+        e2 = self._entry("e2", str(e1.hash))
         assert check_i6_ledger_chain_unbroken([e1, e2]) == []
 
     def test_genesis_with_non_null_prev_hash_fails(self) -> None:
-        e1 = self._entry("e1", "f" * 64, "a" * 64)
+        e1 = self._entry("e1", "f" * 64)
         violations = check_i6_ledger_chain_unbroken([e1])
         assert len(violations) == 1 and violations[0].invariant == "I6"
 
     def test_broken_chain_fails(self) -> None:
-        e1 = self._entry("e1", None, "a" * 64)
-        e2 = self._entry("e2", "c" * 64, "b" * 64)
+        e1 = self._entry("e1", None)
+        e2 = self._entry("e2", "c" * 64)
         violations = check_i6_ledger_chain_unbroken([e1, e2])
         assert len(violations) == 1 and violations[0].invariant == "I6"
 
     def test_mixed_regions_rejected(self) -> None:
-        e1 = self._entry("e1", None, "a" * 64)
-        e2 = C3Egressledgerentry.model_validate({**e1.model_dump(mode="json"), "entryId": "e2", "region": "uk", "prevHash": "a" * 64})
+        e1 = self._entry("e1", None)
+        e2 = C3Egressledgerentry.model_validate({**e1.model_dump(mode="json"), "entryId": "e2", "region": "uk", "prevHash": str(e1.hash)})
         violations = check_i6_ledger_chain_unbroken([e1, e2])
         assert len(violations) == 1 and violations[0].invariant == "I6"
+
+    def test_tampered_hash_detected(self) -> None:
+        e1 = self._entry("e1", None)
+        tampered = e1.model_copy(update={"hash": "f" * 64})
+        violations = check_i6_ledger_chain_unbroken([tampered])
+        assert any(v.invariant == "I6" and "tampered" in v.detail for v in violations)
+
+    def test_signature_verified_when_signing_key_supplied(self) -> None:
+        key = bytes.fromhex("a" * 64)
+        e1 = self._entry("e1", None)
+        signed = e1.model_copy(update={"signature": sign(key, str(e1.hash))})
+        assert check_i6_ledger_chain_unbroken([signed], signing_key=key) == []
+
+    def test_signature_rejected_with_wrong_key(self) -> None:
+        key_a = bytes.fromhex("a" * 64)
+        key_b = bytes.fromhex("b" * 64)
+        e1 = self._entry("e1", None)
+        signed = e1.model_copy(update={"signature": sign(key_a, str(e1.hash))})
+        violations = check_i6_ledger_chain_unbroken([signed], signing_key=key_b)
+        assert any("signature" in v.detail for v in violations)
 
     def test_empty_list_passes(self) -> None:
         assert check_i6_ledger_chain_unbroken([]) == []

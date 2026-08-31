@@ -4,12 +4,15 @@ import pytest
 from pydantic import ValidationError
 
 from config.settings import (
+    EgressConfig,
     Environment,
     FeatureFlags,
     PlatformSettings,
     RelevanceConfig,
     load_settings,
 )
+
+_VALID_HEX64 = "a" * 64
 
 
 def test_default_platform_yaml_loads() -> None:
@@ -18,7 +21,7 @@ def test_default_platform_yaml_loads() -> None:
     assert settings.models.tiers["fast"].tier_id == "fast-v1"
     assert settings.storage.pgvector_enabled is True
     assert settings.egress.fail_mode == "closed"
-    assert settings.egress.policy_version == 1
+    assert settings.egress.policy_version == 3
 
 
 def test_feature_flags_dotted_translation() -> None:
@@ -63,6 +66,18 @@ def test_relevance_config_allows_drop_equal_to_keep() -> None:
     assert cfg.pass1_drop == cfg.pass1_keep
 
 
+def _valid_egress_payload(**overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "policy_version": 3,
+        "fail_mode": "closed",
+        "lawful_basis": "legitimate-interest",
+        "ledger_signing_key": _VALID_HEX64,
+        "tokenisation_keys": {"us": _VALID_HEX64, "uk": _VALID_HEX64, "eu": _VALID_HEX64},
+    }
+    payload.update(overrides)
+    return payload
+
+
 def _valid_settings_payload() -> dict[str, object]:
     return {
         "environment": Environment.DEV,
@@ -72,17 +87,52 @@ def _valid_settings_payload() -> dict[str, object]:
             "embedding_dimensions": 8,
         },
         "storage": {"postgres_dsn": "postgresql://x/y"},
-        "egress": {"policy_version": 1, "fail_mode": "closed"},
+        "egress": _valid_egress_payload(),
         "feature_flags": {},
         "relevance": {"pass1_keep": 0.65, "pass1_drop": 0.20, "domain_tokens": {}},
     }
 
 
 def test_egress_fail_mode_rejects_anything_but_closed() -> None:
-    payload = _valid_settings_payload()
-    payload["egress"] = {"policy_version": 1, "fail_mode": "open"}
-    with pytest.raises(ValidationError):
-        PlatformSettings.model_validate(payload)
+    with pytest.raises(ValidationError, match="fail_mode"):
+        EgressConfig.model_validate(_valid_egress_payload(fail_mode="open"))
+
+
+def test_egress_lawful_basis_defaults() -> None:
+    payload = _valid_egress_payload()
+    del payload["lawful_basis"]
+    cfg = EgressConfig.model_validate(payload)
+    assert cfg.lawful_basis == "legitimate-interest"
+
+
+def test_egress_rejects_short_ledger_signing_key() -> None:
+    with pytest.raises(ValidationError, match="ledger_signing_key"):
+        EgressConfig.model_validate(_valid_egress_payload(ledger_signing_key="tooshort"))
+
+
+def test_egress_rejects_non_hex_ledger_signing_key() -> None:
+    with pytest.raises(ValidationError, match="ledger_signing_key"):
+        EgressConfig.model_validate(_valid_egress_payload(ledger_signing_key="z" * 64))
+
+
+def test_egress_rejects_missing_region_tokenisation_key() -> None:
+    payload = _valid_egress_payload()
+    payload["tokenisation_keys"] = {"us": _VALID_HEX64, "uk": _VALID_HEX64}  # eu missing
+    with pytest.raises(ValidationError, match="eu"):
+        EgressConfig.model_validate(payload)
+
+
+def test_egress_rejects_malformed_region_tokenisation_key() -> None:
+    payload = _valid_egress_payload()
+    payload["tokenisation_keys"] = {"us": "short", "uk": _VALID_HEX64, "eu": _VALID_HEX64}
+    with pytest.raises(ValidationError, match="tokenisation_keys"):
+        EgressConfig.model_validate(payload)
+
+
+def test_default_platform_yaml_egress_keys_are_well_formed() -> None:
+    settings = load_settings()
+    assert len(settings.egress.ledger_signing_key) == 64
+    assert set(settings.egress.tokenisation_keys) == {"us", "uk", "eu"}
 
 
 def test_platform_settings_accepts_valid_relevance_config() -> None:

@@ -23,6 +23,9 @@ hit) at the call site.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -42,6 +45,39 @@ class InvariantViolation:
     invariant: str
     record_id: str
     detail: str
+
+
+def canonical_json_bytes(value: object) -> bytes:
+    """Sorted keys, no insignificant whitespace - Section 5.5's own
+    canonical_json recipe ("canonical_json uses sorted keys and no
+    insignificant whitespace so that hashes are reproducible"). Defined
+    here, in contracts/ - the lowest layer everything else depends on -
+    specifically so both connectors/manifest.py (corpusHash) and
+    gate/ledger.py (the ledger entry hash) can import the SAME
+    implementation without creating a circular import between them
+    (connectors depends on gate; gate must not depend back on connectors).
+    """
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def sign(signing_key: bytes, hash_hex: str) -> str:
+    """HMAC-SHA256(signing_key, hash_hex) - Section 5.5's own
+    sign(signing_key, h) call site gives no algorithm at all (total
+    spec silence beyond the call site itself); a builder decision. Kept
+    here, alongside canonical_json_bytes, so the function that PRODUCES a
+    ledger entry's signature (gate/ledger.py) and the function that
+    VERIFIES it (check_i6_ledger_chain_unbroken, below) are provably the
+    same implementation, not two definitions that could drift apart.
+
+    NOTE: HMAC is a symmetric MAC - anyone who can verify a signature can
+    also forge one, since verification needs the same secret used to
+    sign. This gives tamper-evidence within the trusted platform
+    boundary, not cryptographic non-repudiation to an external auditor. A
+    real deployment likely wants asymmetric signing (e.g. Ed25519) given
+    the ledger's own retention promise - a confirmed PoC limitation, not
+    implemented at Increment 4.
+    """
+    return hmac.new(signing_key, hash_hex.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def _unwrap(value: object) -> object:
@@ -228,8 +264,35 @@ def check_i5_mapping_entries_have_disposition(
     return violations
 
 
+def ledger_body(entry: C3Egressledgerentry) -> dict[str, object]:
+    """The exact 11-key body Section 5.5's append_ledger() hashes,
+    reconstructed from an already-built C3Egressledgerentry. Public (no
+    leading underscore) because gate/ledger.py's append_ledger_entry also
+    calls this directly - the function that PRODUCES an entry's hash and
+    check_i6_ledger_chain_unbroken, which VERIFIES it below, are provably
+    the same recipe this way, not two definitions that could drift
+    apart."""
+    prev_hash = _unwrap(entry.prevHash)
+    return {
+        "entryId": entry.entryId,
+        "at": entry.at.isoformat(),
+        "region": str(_unwrap(entry.region)),
+        "artefactId": entry.artefactId,
+        "contentHash": str(_unwrap(entry.contentHash)),
+        "classification": sorted(str(_unwrap(label)) for label in entry.classification),
+        "verdict": str(_unwrap(entry.verdict)),
+        "policyVersion": entry.policyVersion,
+        "lawfulBasis": entry.lawfulBasis,
+        "approver": entry.approver,
+        "runId": str(entry.runId),
+        "prevHash": str(prev_hash) if prev_hash is not None else None,
+    }
+
+
 def check_i6_ledger_chain_unbroken(
     entries: Sequence[C3Egressledgerentry],
+    *,
+    signing_key: bytes | None = None,
 ) -> list[InvariantViolation]:
     """I6: EgressLedgerEntry.prevHash MUST form an unbroken chain per region.
     A break invalidates the run and requires manual investigation.
@@ -237,6 +300,25 @@ def check_i6_ledger_chain_unbroken(
     entries MUST be for a single region, in append order. The first entry in
     a region's chain (the genesis entry) is expected to carry prevHash=null;
     every subsequent entry's prevHash MUST equal the previous entry's hash.
+
+    Beyond linkage, this also recomputes each entry's OWN `hash` from its
+    body fields (via canonical_json_bytes, the identical recipe
+    gate/ledger.py used to produce it) and reports a mismatch as tampering
+    - "the ledger chain verifies" (the literal Increment 4 acceptance-test
+    wording) is read as covering entry integrity, not merely prevHash
+    linkage: a chain where every prevHash matches its predecessor's
+    (unverified) hash field proves nothing if an entry's own hash could
+    have been silently altered along with the next entry's prevHash to
+    match. Hash recomputation needs no secret, so it always runs.
+
+    Signature verification additionally runs when signing_key is given
+    (optional, since it needs the platform's ledger signing key - a
+    caller with only entries in hand, e.g. a future external auditor
+    tool, can still get full hash/linkage verification without it. This
+    is NOT the same custody boundary as Section 5.3's regional
+    tokenisation keys ("No human standing access") - the ledger's own
+    signing key is a separate, central secret with no such restriction
+    stated anywhere in the spec).
     """
     violations: list[InvariantViolation] = []
     if entries:
@@ -265,5 +347,24 @@ def check_i6_ledger_chain_unbroken(
                 record_id=entry.entryId,
                 detail=f"prevHash {prev_hash!r} does not match previous entry's hash {previous_hash!r}; chain broken",
             ))
-        previous_hash = str(_unwrap(entry.hash))
+
+        entry_hash = str(_unwrap(entry.hash))
+        recomputed_hash = hashlib.sha256(canonical_json_bytes(ledger_body(entry))).hexdigest()
+        if recomputed_hash != entry_hash:
+            violations.append(InvariantViolation(
+                invariant="I6",
+                record_id=entry.entryId,
+                detail="hash does not match the entry's own recomputed body hash; entry has been tampered with",
+            ))
+
+        if signing_key is not None:
+            expected_signature = sign(signing_key, entry_hash)
+            if expected_signature != entry.signature:
+                violations.append(InvariantViolation(
+                    invariant="I6",
+                    record_id=entry.entryId,
+                    detail="signature does not verify against the supplied signing key",
+                ))
+
+        previous_hash = entry_hash
     return violations

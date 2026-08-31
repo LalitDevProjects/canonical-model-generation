@@ -1,0 +1,28 @@
+# Egress policy (Section 5.4). Transcribed verbatim from the spec.
+# "default: block is not negotiable: an artefact that matches no rule
+# MUST NOT cross." Its own `version` MUST match config/platform.yaml's
+# egress.policy_version - enforced at load time (gate/policy.py).
+version: 3
+default: block
+rules:
+  - id: allow-structural
+    when: { labels_all_in: [STRUCTURAL] }
+    verdict: allow
+  - id: allow-documentary-masked
+    when:
+      labels_subset_of: [STRUCTURAL, DOCUMENTARY, IDENTIFYING, SAMPLE_VALUE]
+      all_masked: true
+    verdict: allow
+  - id: block-personal
+    when: { labels_any_in: [PERSONAL_DATA, SENSITIVE_DOMAIN] }
+    verdict: block
+    reason: "Personal or special-category data never crosses a border."
+  - id: block-unlicensed
+    when: { licence_disposition_in: [prohibited, unknown] }
+    verdict: block
+    reason: "Licence disposition must be recorded as permitted before ingestion."
+overrides:
+  - id: dpo-approved-exception
+    requires: { approver_role: DPO, justification: required, expires_after_days: 30 }
+    effect: allow
+    audit: mandatory

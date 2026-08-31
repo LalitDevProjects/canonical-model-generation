@@ -92,9 +92,10 @@
     "exclusionReason": {
       "type": "string",
       "enum": [
-        "out-of-domain", "superseded", "licence-blocked",
+        "out-of-domain", "superseded", "licence-blocked", "policy-blocked",
         "access-denied", "unparseable", "duplicate", "manual"
-      ]
+      ],
+      "description": "policy-blocked added at Increment 4: a gate rejection from any Section 5.4 policy rule OTHER than block-unlicensed (which maps to the more specific licence-blocked)."
     },
     "exclusionEntry": {
       "type": "object",

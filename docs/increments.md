@@ -11,7 +11,7 @@ emission.
 | I1 | Skeleton and contracts | **Complete** | CI is green; every contract has a positive and a negative fixture; model generation is reproducible from schema |
 | I2 | Connectors and manifest | **Complete** | A run over the golden corpus produces a sealed manifest whose `corpusHash` is stable across repeats, with every excluded artefact carrying a reason |
 | I3 | Parsers to IR | **Complete** | Golden-file tests pass byte-exact; the planted `xsd:choice` survives as variants; the untyped date raises `type-suspicion` |
-| I4 | Gate and ledger | Not started | The planted personal-data example is masked; the licence-restricted artefact is blocked and appears in `exclusions`; the ledger chain verifies |
+| I4 | Gate and ledger | **Complete** | The planted personal-data example is masked; the licence-restricted artefact is blocked and appears in `exclusions`; the ledger chain verifies |
 | I5 | Substrate and retrieval | Not started | Retrieval is deterministic across repeats; the four-hop lineage query returns the expected path |
 | I6 | Agent runtime | Not started | A denied tool call is journalled and refused; a schema violation retries then escalates; the planted injection string changes nothing |
 | I7 | Clustering and conflicts | Not started | Planted synonyms cluster; the planted homonym does not merge; evaluation harness meets the Semantic Resolver thresholds |
@@ -131,6 +131,78 @@ structure (itself plain JSON), not validate real data records against it
 unscheduled in the spec's own 9-increment build guide (verified against
 every increment's acceptance test); `parsers/code_inference.py` is a
 documented stub.
+
+## I4 - what was built
+
+- `contracts/common/defs.json`: `exclusionReason` gained `"policy-blocked"`
+  (`block-unlicensed` maps to the more specific `licence-blocked`; every
+  other policy rejection maps to this) - regenerated and verified
+  byte-reproducible before any gate code was written, same rigor as I1/I3's
+  own contract changes
+- `config/settings.py` + `platform.yaml`: `EgressConfig` gained
+  `lawful_basis`, `ledger_signing_key` and `tokenisation_keys`
+  (per-region, 64-hex-char PoC placeholders, fail-closed on malformed hex);
+  `policy_version` bumped to match `gate/policy.yaml`'s own version
+- **Resolved a real inconsistency in the spec's own two verdict
+  mechanisms** (Section 5.1's ladder `block > mask > allow` vs. Section
+  5.4's policy YAML, which never produces `mask` even though the
+  acceptance test requires one): a two-tier model, where the ladder
+  verdict is the final `C2`/`C3` verdict for anything the policy admits,
+  and the policy verdict is a separate admit/reject gate that forces
+  `block` when it rejects. See `gate/gate.py`'s module docstring for the
+  full reasoning.
+- `gate/policy.py` + `gate/policy.yaml`: `evaluate_policy`, transcribed
+  from Section 5.4. Evaluates every rule (not first-match-wins by list
+  order) so a matching block rule always wins over a matching allow rule -
+  a real bug (`allow-structural` listed before `block-unlicensed`) caught
+  by testing the function directly, not inferred from the prose
+- `gate/structure.py` + `gate/detectors.py`: the L0-L4 classification
+  ladder (L5 is a direct licence lookup, not a content detector - see
+  `connectors/manifest.py`). L2 entity recognition is a lightweight,
+  stdlib-only Title-Case heuristic (a confirmed decision, not spaCy) -
+  provisional and documented as such; it only ever produces `mask`, never
+  `block`, so over-triggering fails safe
+- `gate/tokenisation.py`: `tokenise()` exactly per the spec's own Section
+  5.3 pseudocode (HMAC-SHA256, label-prefixed); `redact()`, a deterministic
+  substring replace-all over the original raw bytes (not a re-serialized
+  structure, to avoid gratuitous formatting drift on untouched artefacts)
+- `gate/ledger.py` + `gate/evidence_store.py`: `append_ledger_entry()`
+  exactly per Section 5.5's `append_ledger()` pseudocode, and a minimal
+  content-addressed evidence-store writer (`evidence-store/artefacts/{sha256[0:2]}/{sha256}`)
+  - both a confirmed Increment 4 scope call, not deferred to I5
+- `contracts/validators.py`: `check_i6_ledger_chain_unbroken` extended to
+  recompute each entry's own `hash` from its body (catching tampering, not
+  just a broken `prevHash` link) and verify `signature` when a signing key
+  is supplied - "the ledger chain verifies" is read as covering entry
+  integrity, not merely linkage
+- `connectors/manifest.py`: the Increment 2 placeholder sanitisation
+  (unconditional `verdict=allow`) is gone; every kept artefact now runs
+  through the real gate (`gate.gate.classify_and_redact`). `contentHash`
+  is now computed over gated (possibly redacted) content, not raw fetched
+  bytes - mask-then-hash. A deliberate breaking signature change
+  (`egress_cfg`/`policy`/`feature_flags`/`ledger_store`/`evidence_store`
+  are now required parameters); `tests/connectors/test_golden_corpus_e2e.py`
+  still passes with the same assertions (artefact count, exclusion count/
+  reason, hash stability across repeats) - verified against real
+  golden-corpus bytes, not assumed
+- `golden/gate/uk/claim-with-example.yaml`: the planted personal-data
+  example, using the spec's own worked `tokenise()` input values
+  ("A. Smith", "SW1A 1AA")
+- 345 tests passing (up from 236 at I3), `mypy --strict` clean, 99.6%
+  coverage on the modules in scope (target 85%)
+- The three acceptance-test clauses each map to a literal test:
+  `tests/gate/test_acceptance.py::TestPlantedPersonalDataExampleIsMasked`
+  (real fixture, `verdict=mask`, raw values absent / tokens present in the
+  redacted output), `TestLicenceRestrictedArtefactIsBlockedAndExcluded`
+  (end-to-end through `assemble_corpus_manifest`, absent from `artefacts`,
+  present in `exclusions` with `reason="licence-blocked"`), and
+  `tests/gate/test_ledger.py::test_a_freshly_read_back_chain_still_verifies_via_check_i6`
+  / `test_check_i6_detects_a_corrupted_entry_after_a_round_trip` (a clean
+  chain verifies; a deliberately corrupted one is caught)
+
+**Confirmed decisions**: L2 NER is a lightweight stdlib heuristic, not
+spaCy (see `gate/detectors.py`); the evidence store is a minimal writer
+built now, not deferred to I5.
 
 ## Decisions locked in for the rebuild (apply across all increments unless revisited)
 

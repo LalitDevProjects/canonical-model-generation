@@ -13,6 +13,7 @@ CMGP_EGRESS__FAIL_MODE=closed).
 
 from __future__ import annotations
 
+import re
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -100,6 +101,11 @@ class RelevanceConfig(BaseModel):
         return self
 
 
+def _require_hex64(value: str, field_label: str) -> None:
+    if not re.fullmatch(r"[0-9a-f]{64}", value):
+        raise ValueError(f"{field_label} must be exactly 64 lowercase hex characters (32 bytes)")
+
+
 class EgressConfig(BaseModel):
     policy_version: int
     fail_mode: str = Field(
@@ -110,6 +116,42 @@ class EgressConfig(BaseModel):
         "just a default, so any other value is a load-time validation "
         "error rather than a silently-accepted misconfiguration.",
     )
+    lawful_basis: str = Field(
+        default="legitimate-interest",
+        description="Fixed platform-wide value for C3.lawfulBasis (Section "
+        "5.5's append_ledger() requires it but the spec gives no "
+        "per-artefact source for it anywhere - not in C2, not in the "
+        "policy YAML). Not computed per-artefact; a single constant for "
+        "this PoC's canonical-modelling purpose, matching the value "
+        "already used in this repo's own Increment 1 C3 fixtures.",
+    )
+    ledger_signing_key: str = Field(
+        description="PoC placeholder for the ledger's HMAC-SHA256 signing "
+        "key (gate/ledger.py:sign() - the spec's own sign(signing_key, h) "
+        "call site gives no algorithm at all, a builder decision). A "
+        "single central key, distinct from the per-region tokenisation "
+        "keys below. 64 lowercase hex characters (32 bytes).",
+    )
+    tokenisation_keys: dict[str, str] = Field(
+        description="PoC stand-in for the spec's regional key store "
+        "(Section 5.3: 'Region tokenisation keys live in the regional key "
+        "store only. They MUST NOT be replicated to the central platform "
+        "under any circumstance.') This repo has no such infrastructure, "
+        "so these are committed PoC placeholder secrets in "
+        "config/platform.yaml - exactly like storage.postgres_dsn's "
+        "already-committed placeholder credential, NOT production key "
+        "material. One 64-hex-char (32-byte) HMAC key per region.",
+    )
+
+    @model_validator(mode="after")
+    def _keys_are_well_formed_hex(self) -> "EgressConfig":
+        _require_hex64(self.ledger_signing_key, "egress.ledger_signing_key")
+        for region in ("us", "uk", "eu"):
+            key = self.tokenisation_keys.get(region)
+            if key is None:
+                raise ValueError(f"egress.tokenisation_keys is missing required region {region!r}")
+            _require_hex64(key, f"egress.tokenisation_keys[{region!r}]")
+        return self
 
 
 class FeatureFlags(BaseModel):

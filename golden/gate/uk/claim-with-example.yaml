@@ -1,0 +1,51 @@
+openapi: "3.1.0"
+info:
+  title: Claims API (UK) - gate fixture
+  version: "1.0.0"
+  description: >
+    Increment 4's planted personal-data example: a claimant field example
+    value carrying the spec's own worked tokenise() inputs ("A. Smith",
+    "SW1A 1AA" - Section 5.3), so the gate acceptance test exercises real
+    detection (L1 UK postcode, L2 title-case entity, L3 example-position)
+    against a realistic OpenAPI document rather than a synthetic string.
+paths:
+  /claims/{claimId}:
+    get:
+      summary: Retrieve a claim
+      operationId: getClaim
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Claim found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Claim"
+components:
+  schemas:
+    Claim:
+      type: object
+      required:
+        - claimId
+        - lossDate
+        - claimant
+        - status
+      properties:
+        claimId:
+          type: string
+          description: Unique claim identifier.
+        lossDate:
+          type: string
+          description: Date the loss occurred.
+        claimant:
+          type: string
+          description: Name and postal address of the person filing the claim.
+          example: "A. Smith, SW1A 1AA"
+        status:
+          type: string
+          enum: [OPEN, CLOSED]

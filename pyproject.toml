@@ -49,7 +49,7 @@ Homepage = "https://github.com/example/canonical-model-generation"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*", "parsers*", "algorithms*"]
+include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*", "parsers*", "algorithms*", "gate*"]
 
 [tool.black]
 line-length = 100
@@ -103,7 +103,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["generated", "contracts", "config", "connectors", "pipeline", "parsers", "algorithms"]
+source = ["generated", "contracts", "config", "connectors", "pipeline", "parsers", "algorithms", "gate"]
 omit = [
     "*/tests/*",
     "generated/py.typed",

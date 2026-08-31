@@ -25,8 +25,16 @@ storage:
   run_store_path: "run-store"
 
 egress:
-  policy_version: 1
+  policy_version: 3   # MUST match gate/policy.yaml's own version field - enforced at load time
   fail_mode: closed
+  lawful_basis: legitimate-interest
+  # PoC placeholder secrets, generated once via `python -c "import secrets;print(secrets.token_hex(32))"`.
+  # NOT production key material - see EgressConfig.ledger_signing_key/tokenisation_keys docstrings.
+  ledger_signing_key: "d859fd29fedfc1e26b910be871a1e717e65e541150886922f676b9a2929c1f19"
+  tokenisation_keys:
+    us: "8c73ef80e82c027ec3d562344d23af7fc7f0ec1129f5d60fee96d9cd344ae813"
+    uk: "78a499de38f0bba79e9a0a84fec7c8f747f6edfb3e15e52df24ac6a81f0f2a7c"
+    eu: "e79c43dbc7494f5ff3190c29c1fc5f02fa27228546b988d0bf7a533116ef1602"
 
 # Pass-1 deterministic relevance filtering (Section 4.2). pass1_keep,
 # pass1_drop and domain_tokens.claims are transcribed verbatim from the

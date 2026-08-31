@@ -18,12 +18,19 @@ Two URI schemes, both deterministic - never a random UUID:
 beyond the spec's own literal loose check (still accepts every example the
 spec gives) to catch structurally malformed URIs at schema-validation time.
 
+`contracts/common/defs.json`'s `exclusionReason` enum gained
+`"policy-blocked"` at Increment 4: `block-unlicensed` (Section 5.4) maps
+to the more specific pre-existing `licence-blocked`; every other gate
+policy rejection (e.g. `block-personal`) maps to `policy-blocked`.
+Regenerated and verified byte-reproducible before any gate code was
+written, same rigor as every other contract change in this repo.
+
 ## Contracts
 
 | ID | Name | Schema path | Status |
 |----|------|-------------|--------|
 | C1 | SourceArtefact | `contracts/C1/SourceArtefact/1.0.json` | Extracted from C4's embedded artefact object into its own `$ref`-able schema (spec embeds it inline; this is a structural choice for single-source-of-truth generation, not a spec requirement) |
-| C2 | SanitisationRecord | `contracts/C2/SanitisationRecord/1.0.json` | **Interpreted, not verbatim spec** - no JSON Schema or exhaustive field list exists in the spec; synthesized from Section 5 prose. Revisit at Increment 4. |
+| C2 | SanitisationRecord | `contracts/C2/SanitisationRecord/1.0.json` | **Interpreted, not verbatim spec** - no JSON Schema or exhaustive field list exists in the spec; synthesized from Section 5 prose. Genuinely populated by the gate as of Increment 4 (`gate/gate.py::classify_and_redact`), superseding the Increment 2 placeholder; the schema's shape itself is unchanged |
 | C3 | EgressLedgerEntry | `contracts/C3/EgressLedgerEntry/1.0.json` | Transcribed from the `append_ledger()` function body (Section 5.5) |
 | C4 | CorpusManifest | `contracts/C4/CorpusManifest/1.0.json` | Transcribed verbatim (Section 3.4). `exclusions` key is required (may be empty) |
 | C5 | AttributeRecord | `contracts/C5/AttributeRecord/1.0.json` | Transcribed verbatim (Section 3.3) - the pivot contract. `typeDetail` tightened at Increment 3 (see table below) |
@@ -79,8 +86,10 @@ shape (`additionalProperties: false`) covering every key the spec names:
 
 ## Known design gaps to close in later increments
 
-- C2, C9.GapEntry, and C10 are synthesized/interpreted rather than
+- C9.GapEntry and C10 are synthesized/interpreted rather than
   spec-verbatim (see table above) - revisit once the increment that
-  consumes each one (I4, I8, I9 respectively) is implemented for real.
+  consumes each one (I8, I9 respectively) is implemented for real. C2 was
+  in the same position until Increment 4, which implemented the gate that
+  actually populates it.
 - `RunManifest.state` will likely become a closed enum once Increment 6's
   state machine defines the full state list.
