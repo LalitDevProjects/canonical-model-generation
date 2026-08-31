@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from config.settings import (
     ClusteringConfig,
+    CoverageConfig,
     EgressConfig,
     Environment,
     FeatureFlags,
@@ -121,6 +122,21 @@ def test_clustering_config_allows_review_band_equal_to_link_threshold() -> None:
 def test_clustering_config_defaults_when_omitted() -> None:
     settings = PlatformSettings.model_validate(_valid_settings_payload())
     assert settings.clustering.link_threshold == 0.72
+
+
+def test_coverage_config_loads_spec_verbatim_values() -> None:
+    settings = load_settings()
+    assert settings.coverage.region_floor == 0.85
+    assert settings.coverage.domain_target == 0.90
+    assert settings.coverage.resolution_weights.core == 1.0
+    assert settings.coverage.resolution_weights.extension == 0.5
+    assert settings.coverage.resolution_weights.gap == 0.0
+
+
+def test_coverage_config_defaults_when_omitted() -> None:
+    cfg = CoverageConfig()
+    assert cfg.region_floor == 0.85
+    assert cfg.domain_target == 0.90
 
 
 def _valid_egress_payload(**overrides: object) -> dict[str, object]:

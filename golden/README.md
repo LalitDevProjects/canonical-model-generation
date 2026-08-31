@@ -58,6 +58,17 @@ planted difficulty its own acceptance test needs:
   so they genuinely reach Repository Scout rather than being filtered
   out before the agent ever sees them. A new top-level bucket
   (`agents/`), same reasoning as prior increments.
+- **Increment 8**: `coverage/{attributes,clusters,candidates,exclusions}.json`
+  - hand-authored real C5/C6/C8/exclusion JSON (a new top-level bucket,
+  same reasoning as every prior increment - clusters/candidates are
+  themselves synthesized artefacts with no "raw" source format to parse
+  them from, matching Increment 5's own `substrate/graph_fixture.json`
+  precedent). Plants exactly the acceptance test's own scenario: a
+  clean, 3-region, ratified `claimId` concept; a weight-5 `lossDate`
+  concept with no candidate synthesised at all (the seeded unresolved
+  mandatory attribute Gate 1 must block on); an unratified
+  `reserveAmount` candidate (Gate 3); one corpus-level exclusion. See
+  `tests/algorithms/test_coverage_acceptance.py`.
 - **Increment 7**: `clustering/{us,uk,eu}/claim.yaml` - real, small
   OpenAPI fragments through the real `parsers/openapi.py` path (a new
   top-level bucket, same reasoning as prior increments - the existing

@@ -56,8 +56,33 @@ two real agents proving it end to end.
   per component, persisting `AWAIT_TRIAGE` escalations to the same
   triage sink the deterministic pipeline uses.
 
+- `acord_aligner.py` (Increment 8) - ACORD Aligner (Section 7.5.2),
+  built in full spec fidelity even though ACORD data has been
+  permanently unavailable in this repo since Increment 1 - its own
+  guardrail G4 means `align_or_degrade()`'s top-level dispatcher never
+  actually invokes it in this repo's own configuration, routing instead
+  to Section 19.2's deterministic degraded mode
+  (`degraded_alignment()`). G1 (the anti-hallucination control) is
+  enforced via `validate_semantics`, not a V4 guardrail - `Guardrail.check`
+  has no access to the agent instance, only `validate_semantics` (a
+  bound method) does.
+- `canonical_synthesiser.py` (Increment 8) - Canonical Synthesiser
+  (Section 7.5.3). A genuinely different deterministic/agent
+  relationship than Repository Scout/Semantic Resolver's own "the
+  algorithm decides confidently, the agent adjudicates the rest" shape:
+  here the agent proposes on every item, and `validate_semantics`
+  overwrites (not merely validates) the fields the code - not the model
+  - must supply outright (placement, obligation.level, vendorOnly), a
+  deliberate, documented use of `output`'s own mutability. Catches
+  `WorkItemFailed` in its own factory as the practical mechanism for
+  Section 9.7's `[UNCERTAINTY]` "emit no candidate" behaviour, which
+  `contracts/C8/CanonicalCandidate/1.0.json`'s all-required-fields
+  schema has no direct way to represent.
+
 See `docs/increments.md` for what each increment built and verified
 (including the real Anthropic API decision and the `tool.denied`
-contract gap Increment 6 closed, and Increment 7's empirically-found
-clustering-weights fix), and `tools/README.md` for the tool gateway
-these agents reach every external capability through.
+contract gap Increment 6 closed, Increment 7's empirically-found
+clustering-weights fix, and Increment 8's two further contract gaps -
+C7's missing `unassessed` verdict and C8's missing `vendorOnly` field),
+and `tools/README.md` for the tool gateway these agents reach every
+external capability through.

@@ -1,0 +1,8 @@
+[
+  {
+    "uri": "git://legacy-claims-v0/spec.yaml",
+    "reason": "superseded",
+    "detail": "Replaced by the current claims-v1 OpenAPI contract; retained in the register, not the universe.",
+    "decidedBy": "policy"
+  }
+]

@@ -15,11 +15,12 @@ class Verdict(StrEnum):
     fit = 'fit'
     partial = 'partial'
     misfit = 'misfit'
+    unassessed = 'unassessed'
 
 
 class C7Alignmentrecord(BaseModel):
     """
-    Renamed from an earlier hand-written 'Alignment' model to match the spec's own naming. Guardrail G1 (verdict=fit REQUIRES a non-null acordRef, anti-hallucination) and the partial/misfit counterparts are encoded as if/then conditionals, which jsonschema.Draft202012Validator enforces but generated Pydantic models do NOT (see contracts/validators.py module docstring) - fixture tests and any future write path must run both.
+    Renamed from an earlier hand-written 'Alignment' model to match the spec's own naming. Guardrail G1 (verdict=fit REQUIRES a non-null acordRef, anti-hallucination) and the partial/misfit counterparts are encoded as if/then conditionals, which jsonschema.Draft202012Validator enforces but generated Pydantic models do NOT (see contracts/validators.py module docstring) - fixture tests and any future write path must run both. verdict='unassessed' added at Increment 8: Section 19.2's degraded mode ('ACORD ingestion not permitted: acord-aligner is disabled. S5 emits verdict: unassessed for every cluster') has no corresponding enum value in the spec's own worked example - a genuine contract gap, same rigor as Increment 6's tool.denied addition.
     """
 
     model_config = ConfigDict(

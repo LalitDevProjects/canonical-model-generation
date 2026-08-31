@@ -51,7 +51,7 @@ class Ratification(BaseModel):
 
 class C8Canonicalcandidate(BaseModel):
     """
-    Renamed from an earlier hand-written 'Candidate' model to match the spec's own naming (CanonicalCandidate). Subject to human ratification per the platform's key constraint: the platform proposes, humans ratify.
+    Renamed from an earlier hand-written 'Candidate' model to match the spec's own naming (CanonicalCandidate). Subject to human ratification per the platform's key constraint: the platform proposes, humans ratify. vendorOnly added at Increment 8: Canonical Synthesiser's own guardrail G4 ('A candidate whose only evidence is tier 3 (vendor) MUST be flagged vendorOnly=true for explicit workshop challenge') requires a field this schema never had - a genuine contract gap, same rigor as Increment 7's clustering-weights fix. Optional, defaulting false, since most candidates are not vendor-only.
     """
 
     model_config = ConfigDict(
@@ -77,5 +77,9 @@ class C8Canonicalcandidate(BaseModel):
     weight: Weight
     """
     Criticality weight: 5=regulatory, 3=business, 1=optional.
+    """
+    vendorOnly: bool = False
+    """
+    Section 9.7 Rule 5 / Canonical Synthesiser guardrail G4: true when the candidate's only evidence is tier-3 (vendor documentation), flagging it for explicit workshop challenge before it can reach core.
     """
     ratification: Ratification

@@ -1,0 +1,72 @@
+[
+  {
+    "attributeId": "attr://us/art-claims-us/Claim.claimId",
+    "runId": "00000000-0000-0000-0000-000000000008",
+    "region": "us",
+    "sourceContract": "art-claims-us",
+    "path": "Claim.claimId",
+    "localName": "claimId",
+    "dataType": "string",
+    "cardinality": "1..1",
+    "obligation": { "level": "mandatory" },
+    "evidenceTier": 1,
+    "inferred": false,
+    "evidenceRefs": ["evref://us/git/art-claims-us@1234567890abcdef#/claimId"]
+  },
+  {
+    "attributeId": "attr://uk/art-claims-uk/Claim.claimId",
+    "runId": "00000000-0000-0000-0000-000000000008",
+    "region": "uk",
+    "sourceContract": "art-claims-uk",
+    "path": "Claim.claimId",
+    "localName": "claimId",
+    "dataType": "string",
+    "cardinality": "1..1",
+    "obligation": { "level": "mandatory" },
+    "evidenceTier": 1,
+    "inferred": false,
+    "evidenceRefs": ["evref://uk/git/art-claims-uk@1234567890abcdef#/claimId"]
+  },
+  {
+    "attributeId": "attr://eu/art-claims-eu/Claim.claimId",
+    "runId": "00000000-0000-0000-0000-000000000008",
+    "region": "eu",
+    "sourceContract": "art-claims-eu",
+    "path": "Claim.claimId",
+    "localName": "claimId",
+    "dataType": "string",
+    "cardinality": "1..1",
+    "obligation": { "level": "mandatory" },
+    "evidenceTier": 1,
+    "inferred": false,
+    "evidenceRefs": ["evref://eu/git/art-claims-eu@1234567890abcdef#/claimId"]
+  },
+  {
+    "attributeId": "attr://us/art-claims-us/Claim.lossDate",
+    "runId": "00000000-0000-0000-0000-000000000008",
+    "region": "us",
+    "sourceContract": "art-claims-us",
+    "path": "Claim.lossDate",
+    "localName": "lossDate",
+    "dataType": "date",
+    "cardinality": "1..1",
+    "obligation": { "level": "mandatory" },
+    "evidenceTier": 1,
+    "inferred": false,
+    "evidenceRefs": ["evref://us/git/art-claims-us@1234567890abcdef#/lossDate"]
+  },
+  {
+    "attributeId": "attr://us/art-claims-us/Claim.reserveAmount",
+    "runId": "00000000-0000-0000-0000-000000000008",
+    "region": "us",
+    "sourceContract": "art-claims-us",
+    "path": "Claim.reserveAmount",
+    "localName": "reserveAmount",
+    "dataType": "decimal",
+    "cardinality": "0..1",
+    "obligation": { "level": "conditional" },
+    "evidenceTier": 1,
+    "inferred": false,
+    "evidenceRefs": ["evref://us/git/art-claims-us@1234567890abcdef#/reserveAmount"]
+  }
+]

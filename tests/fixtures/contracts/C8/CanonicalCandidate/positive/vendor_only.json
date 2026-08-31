@@ -1,0 +1,16 @@
+{
+  "candidateId": "canon://Claim.vendorRiskScore",
+  "entity": "Claim",
+  "attribute": "vendorRiskScore",
+  "dataType": "decimal",
+  "cardinality": "0..1",
+  "obligation": { "level": "optional" },
+  "placement": "extension:us",
+  "placementRule": "5",
+  "vendorOnly": true,
+  "namingSource": "derived",
+  "rationale": "Only evidence is tier-3 vendor documentation; extension pending explicit workshop challenge (Section 9.7 Rule 5).",
+  "clusterRefs": ["cluster://vendor-risk-score"],
+  "weight": 1,
+  "ratification": { "status": "pending", "sme": null, "decidedAt": null }
+}

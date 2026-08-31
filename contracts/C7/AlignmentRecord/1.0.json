@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://canonicalmodel.internal/contracts/C7/AlignmentRecord/1.0.json",
   "title": "C7 AlignmentRecord",
-  "description": "Renamed from an earlier hand-written 'Alignment' model to match the spec's own naming. Guardrail G1 (verdict=fit REQUIRES a non-null acordRef, anti-hallucination) and the partial/misfit counterparts are encoded as if/then conditionals, which jsonschema.Draft202012Validator enforces but generated Pydantic models do NOT (see contracts/validators.py module docstring) - fixture tests and any future write path must run both.",
+  "description": "Renamed from an earlier hand-written 'Alignment' model to match the spec's own naming. Guardrail G1 (verdict=fit REQUIRES a non-null acordRef, anti-hallucination) and the partial/misfit counterparts are encoded as if/then conditionals, which jsonschema.Draft202012Validator enforces but generated Pydantic models do NOT (see contracts/validators.py module docstring) - fixture tests and any future write path must run both. verdict='unassessed' added at Increment 8: Section 19.2's degraded mode ('ACORD ingestion not permitted: acord-aligner is disabled. S5 emits verdict: unassessed for every cluster') has no corresponding enum value in the spec's own worked example - a genuine contract gap, same rigor as Increment 6's tool.denied addition.",
   "type": "object",
   "additionalProperties": false,
   "required": ["clusterId", "acordRef", "verdict", "deviation", "rationale", "evidenceRefs"],
@@ -14,7 +14,7 @@
         { "$ref": "../../common/defs.json#/$defs/acordRef" }
       ]
     },
-    "verdict": { "type": "string", "enum": ["fit", "partial", "misfit"] },
+    "verdict": { "type": "string", "enum": ["fit", "partial", "misfit", "unassessed"] },
     "deviation": { "type": ["string", "null"] },
     "rationale": { "type": "string" },
     "evidenceRefs": {
@@ -48,6 +48,15 @@
       "then": {
         "properties": {
           "acordRef": { "const": null }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "verdict": { "const": "unassessed" } } },
+      "then": {
+        "properties": {
+          "acordRef": { "const": null },
+          "deviation": { "const": null }
         }
       }
     }

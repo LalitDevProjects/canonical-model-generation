@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://loss-date",
+  "acordRef": null,
+  "verdict": "unassessed",
+  "deviation": null,
+  "rationale": "acord-aligner is disabled (licence disposition != permitted); ACORD alignment section left for SME completion (Section 19.2).",
+  "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/lossDate"]
+}

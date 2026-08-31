@@ -1,0 +1,35 @@
+[
+  {
+    "clusterId": "cluster://claim-id",
+    "proposedConcept": "claimId",
+    "members": [
+      { "attributeId": "attr://us/art-claims-us/Claim.claimId", "region": "us", "role": "core", "pairScore": 1.0 },
+      { "attributeId": "attr://uk/art-claims-uk/Claim.claimId", "region": "uk", "role": "variant", "pairScore": 1.0 },
+      { "attributeId": "attr://eu/art-claims-eu/Claim.claimId", "region": "eu", "role": "variant", "pairScore": 1.0 }
+    ],
+    "confidence": 0.95,
+    "evidenceRefs": [
+      "evref://us/git/art-claims-us@1234567890abcdef#/claimId",
+      "evref://uk/git/art-claims-uk@1234567890abcdef#/claimId",
+      "evref://eu/git/art-claims-eu@1234567890abcdef#/claimId"
+    ]
+  },
+  {
+    "clusterId": "cluster://loss-date",
+    "proposedConcept": "lossDate",
+    "members": [
+      { "attributeId": "attr://us/art-claims-us/Claim.lossDate", "region": "us", "role": "core", "pairScore": 1.0 }
+    ],
+    "confidence": 0.9,
+    "evidenceRefs": ["evref://us/git/art-claims-us@1234567890abcdef#/lossDate"]
+  },
+  {
+    "clusterId": "cluster://reserve-amount",
+    "proposedConcept": "reserveAmount",
+    "members": [
+      { "attributeId": "attr://us/art-claims-us/Claim.reserveAmount", "region": "us", "role": "core", "pairScore": 1.0 }
+    ],
+    "confidence": 0.9,
+    "evidenceRefs": ["evref://us/git/art-claims-us@1234567890abcdef#/reserveAmount"]
+  }
+]

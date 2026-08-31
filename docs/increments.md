@@ -15,7 +15,7 @@ emission.
 | I5 | Substrate and retrieval | **Complete** | Retrieval is deterministic across repeats; the four-hop lineage query returns the expected path |
 | I6 | Agent runtime | **Complete** | A denied tool call is journalled and refused; a schema violation retries then escalates; the planted injection string changes nothing |
 | I7 | Clustering and conflicts | **Complete** | Planted synonyms cluster; the planted homonym does not merge; evaluation harness meets the Semantic Resolver thresholds |
-| I8 | Synthesis and coverage | Not started | Coverage is computed with a published denominator; Gate 1 blocks correctly on a seeded unresolved mandatory attribute |
+| I8 | Synthesis and coverage | **Complete** | Coverage is computed with a published denominator; Gate 1 blocks correctly on a seeded unresolved mandatory attribute |
 | I9 | Emission and workshop pack | Not started | Emitted schemas validate; every round-trip test passes or its loss is declared; the pack is complete enough to run a real session from |
 
 ## I1 - what was built
@@ -587,6 +587,149 @@ Repository Scout + Schema Interpreter are the two agents, chosen for
 having real, already-built supporting infrastructure (Increment 2's own
 deferred callback; Increment 3's real parser) over inventing two
 under-specified agents from scratch.
+
+## I8 - what was built
+
+- **Confirmed decision (user, this session): build the full, real ACORD
+  Aligner agent class**, matching how Repository Scout/Schema Interpreter
+  were built completely at Increment 6 even before every path could be
+  exercised for real. ACORD Reference Architecture data has been
+  permanently unavailable in this repo since Increment 1 (unlicensed;
+  `substrate/api.py::acord_lookup` always returns `[]`) - the agent's
+  own guardrail G4 ("if licence disposition != permitted, this agent
+  MUST NOT run") means the real, always-exercised pipeline path in this
+  repo is Section 19.2's deterministic degraded mode, not the agent
+  itself. `agents/acord_aligner.py::align_or_degrade()` is the top-level
+  dispatcher, enforcing G4 by never constructing a work item at all when
+  disposition isn't "permitted" - there is nothing to guardrail-check in
+  an invocation that never happens.
+- **Two more genuine contract gaps found and fixed, same rigor as
+  I4/I6/I7's own fixes**: `contracts/C7/AlignmentRecord/1.0.json`'s
+  `verdict` enum had no `"unassessed"` value at all, though §19.2's
+  degraded mode requires emitting exactly that for every cluster -
+  added, with an `allOf` branch (`acordRef`/`deviation` both `null`);
+  the degraded record reuses the cluster's own `evidenceRefs` rather
+  than needing a schema relaxation. `contracts/C8/CanonicalCandidate/1.0.json`
+  had no `vendorOnly` field at all, though Canonical Synthesiser's own
+  guardrail G4 requires setting one - added as optional, defaulting
+  `false`. Both regenerated, verified byte-reproducible across two runs,
+  new positive fixtures added (`unassessed.json`, `vendor_only.json`),
+  every pre-existing C7/C8 fixture confirmed to pass unmodified.
+- **No separate "Extension Partitioner" or "Coverage Scorer" agent
+  classes** - confirmed by direct research: neither is one of the four
+  agents §7.5 "reproduces in full" (Semantic Resolver, ACORD Aligner,
+  Canonical Synthesiser, Adversarial Critic), neither has its own
+  guardrails or prompt block anywhere in the spec, and Canonical
+  Synthesiser's own G3 ("placement MUST be produced by the deterministic
+  rules in 9.7... the code supplies the placement") is the textual proof
+  that placement happens inside Canonical Synthesiser's own flow.
+  `algorithms/placement.py::place()` and `algorithms/coverage.py::coverage()`
+  are plain deterministic functions - the latter with no agent wrapper
+  at all ("Coverage Scorer... Pure arithmetic," per §7.7's own routing
+  table - no LLM narrative is ever produced for it).
+- **A genuinely different deterministic/agent relationship than
+  Increment 7's.** I7's clustering had the deterministic algorithm
+  decide confidently and the agent adjudicate only the leftover
+  uncertain band. Here, the agent proposes on every item, and the code
+  either constrains (guardrails) or supplies a field outright.
+  Concretely: Canonical Synthesiser's own prompt gives the model no
+  placement information at all (its `[INPUT]` block only ever contains
+  cluster/alignment/member-attribute/naming-convention content), so its
+  raw `placement`/`placementRule`/`obligation.level`/`vendorOnly` guesses
+  (needed only to satisfy the schema's shape) are overwritten in
+  `validate_semantics()` with the real, code-computed values - mutating
+  `output` in place, a deliberate, documented, novel-but-justified use
+  of the one mutable hook `agents/base.py::invoke()` offers (Python dict
+  reference semantics mean the same object is carried through guardrails,
+  write and route afterward). A "guardrail rejects the model's guess"
+  design was considered and rejected: the model was never given the
+  information needed to guess correctly, so that guardrail would fire on
+  nearly every real invocation.
+- `algorithms/naming.py`: Section 9.9's `check_name()` verbatim, reusing
+  `algorithms.profiling.canonical_tokens`/`config.settings.ClusteringConfig.abbreviations`
+  directly rather than a third tokenisation implementation. A real,
+  caught design gap: `contracts/C8/CanonicalCandidate/1.0.json`'s
+  `dataType` field is constrained to the same bare primitive enum as C5
+  (string/integer/decimal/...), with no room for Rule 4's richer
+  canonical type names ("MonetaryAmount", "Identifier") - `check_name()`
+  itself stays fully spec-faithful and independently tested, but
+  Canonical Synthesiser's own wiring of it honestly hardcodes
+  `denotes_money`/`denotes_identifier` to `False` rather than checking
+  against a field that can never hold the value being asked for,
+  documented as a gap to revisit once a contract carries a real
+  canonical-type-name field.
+- `algorithms/placement.py`: Section 9.7's `place()` verbatim.
+  `PlacementContext`'s three workshop-decision callables
+  (`absence_is_gap`/`intends_to_close`/`workshop_approved`) all default
+  to `False` - "never guess" (the spec's own words) means the safe
+  default is the conservative reading, and no workshop-decision-recording
+  mechanism exists in this repo (matching Increment 6/7's own
+  orchestrator-deferral precedent). `is_jurisdictional_regulatory`
+  defaults to `False` too, for the same reason, even though the spec's
+  own commentary only explicitly names the other three this way -
+  "jurisdiction-specific regulatory" has no corresponding classification
+  field anywhere in `C5.AttributeRecord` either, so it genuinely cannot
+  be computed from data alone. `max_evidence_tier` is real - it reads
+  `C5.AttributeRecord.evidenceTier` directly. A real pseudocode gap
+  (`sole_region()`, referenced but never defined) resolved as a
+  documented, deterministic alphabetically-first tie-break, the same
+  class of gap as Increment 7's `lemmatise()`/`dedupe_blocks()`.
+- `algorithms/coverage.py`: `Concept` (one per `ConceptCluster`, not per
+  candidate - a cluster with no synthesised candidate at all becomes a
+  `"gap"` concept, the spec's own named category for exactly this case:
+  *"do not invent one... the concept returns to triage"*). `weight` for
+  a gap concept is derived from the strongest obligation level across
+  the cluster's own members, the only concept-agnostic anchor available
+  when no candidate (and so no `weight` field) exists. `ratifying_sme`
+  is populated only once a human has actually approved the candidate -
+  "the platform proposes, humans ratify" working as intended, not a gap
+  to route around. `coverage()`/`gap_register()` transcribe Section
+  9.8 verbatim against these real shapes; `REGION_FLOOR`/`DOMAIN_TARGET`/
+  `RESOLUTION` become a new `CoverageConfig`, mirroring `ClusteringConfig`'s
+  own Increment 7 pattern exactly.
+- `agents/acord_aligner.py`: `AcordAlignerAgent`, all four guardrails
+  from §7.5.2. G1 ("verdict=fit REQUIRES an acordRef returned... in this
+  invocation") is enforced via `validate_semantics`, not the V4
+  guardrail list - `Guardrail.check`'s signature has no access to the
+  agent instance, only `validate_semantics` (a bound method) does, the
+  same framework constraint Repository Scout's anti-drop check and
+  Semantic Resolver's invented-member check already work within. G3
+  ("a forced fit is prohibited") is inherently a semantic judgment no
+  structural check can fully verify - the real, honestly-limited proxy
+  implemented flags a `partial` verdict whose own deviation text echoes
+  misfit language.
+- `agents/canonical_synthesiser.py`: `CanonicalSynthesiserAgent`. G1
+  (clusterRefs non-empty) and G2 (the naming convention checker) are
+  real, stateless V4 guardrails. G3/obligation/vendorOnly are enforced
+  by construction in `validate_semantics` (see above), which also reuses
+  `contracts.validators.check_i3_candidate_traces_to_attribute` directly
+  to confirm every clusterRef genuinely traces to real data, not
+  reimplemented. Section 9.7's own `[UNCERTAINTY]` block ("emit no
+  candidate... the concept returns to triage") has no representation in
+  C8's all-required-fields schema; `make_canonical_synthesiser_factory()`
+  catches the resulting `WorkItemFailed` and returns `None`, which
+  `algorithms.coverage.build_universe()` already treats as exactly that
+  - a legitimate `"gap"` resolution, not an error.
+- `golden/coverage/`: hand-authored real C5/C6/C8/exclusion JSON (the
+  same precedent as Increment 5's `substrate/graph_fixture.json` -
+  clusters/candidates are themselves synthesized artefacts with no "raw"
+  format to parse them from). Plants exactly the acceptance test's own
+  scenario: a clean, 3-region, ratified `claimId` concept resolving to
+  `"core"`; a weight-5 `lossDate` concept with **no candidate
+  synthesised at all** - the seeded unresolved mandatory attribute Gate
+  1 must block on; an unratified `reserveAmount` candidate exercising
+  Gate 3 alongside it; one corpus-level exclusion.
+- 807 tests passing (up from 704 at I7), `mypy --strict` clean across
+  171 source files, ~99.5% coverage overall (100% within every module
+  this increment touched or added).
+- Acceptance-test clause mapping: "Coverage is computed with a
+  published denominator" -> `tests/algorithms/test_coverage_acceptance.py`
+  asserts `denominator == len(universe)` and a populated `exclusions`
+  register, validated against the real, unmodified C9 CoverageReport
+  schema. "Gate 1 blocks correctly on a seeded unresolved mandatory
+  attribute" -> same test - the seeded `cluster://loss-date` concept
+  yields `gate1Pass is False` and a `gap_register()` entry with
+  `reason="unresolved"`.
 
 ## Decisions locked in for the rebuild (apply across all increments unless revisited)
 

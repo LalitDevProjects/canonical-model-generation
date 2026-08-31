@@ -1,0 +1,32 @@
+[
+  {
+    "candidateId": "canon://Claim.claimId",
+    "entity": "Claim",
+    "attribute": "claimId",
+    "dataType": "string",
+    "cardinality": "1..1",
+    "obligation": { "level": "mandatory" },
+    "placement": "core",
+    "placementRule": "1",
+    "namingSource": "derived",
+    "rationale": "Present with mandatory obligation in all three regions - Rule 1.",
+    "clusterRefs": ["cluster://claim-id"],
+    "weight": 5,
+    "ratification": { "status": "approved", "sme": "jane.doe@example.com", "decidedAt": "2026-08-20T09:00:00Z" }
+  },
+  {
+    "candidateId": "canon://Claim.reserveAmount",
+    "entity": "Claim",
+    "attribute": "reserveAmount",
+    "dataType": "decimal",
+    "cardinality": "0..1",
+    "obligation": { "level": "conditional" },
+    "placement": "extension:us",
+    "placementRule": "3",
+    "namingSource": "derived",
+    "rationale": "Present only in US, no evidence of intent to adopt elsewhere - Rule 3.",
+    "clusterRefs": ["cluster://reserve-amount"],
+    "weight": 3,
+    "ratification": { "status": "pending", "sme": null, "decidedAt": null }
+  }
+]

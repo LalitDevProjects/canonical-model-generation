@@ -64,5 +64,28 @@ coverage computation.
   which stay out of scope (matching Increment 6's orchestrator-deferral
   precedent).
 
-ACORD alignment scoring and coverage computation are not yet built - see
-`docs/increments.md`.
+- `naming.py` (Increment 8) — Section 9.9's `check_name()` verbatim,
+  reusing `algorithms.profiling.canonical_tokens`/
+  `config.settings.ClusteringConfig.abbreviations` directly rather than
+  a third tokenisation implementation. `NamingViolation` is a local,
+  2-field shape (`kind`, `message`) matching the spec's own pseudocode
+  literally - not `agents.validation.Violation` (a different, 4-field
+  framework shape); `agents/canonical_synthesiser.py`'s own G2 guardrail
+  adapts between the two.
+- `placement.py` (Increment 8) — Section 9.7's `place()` verbatim: "the
+  agent writes the rationale; this function decides." `PlacementContext`'s
+  three workshop-decision callables all default to `False` ("never
+  guess" - no workshop-decision-recording mechanism exists in this
+  repo). Called from within `agents/canonical_synthesiser.py`'s own
+  flow, not a separate agent - see that module's docstring for why no
+  standalone "Extension Partitioner" agent exists.
+- `coverage.py` (Increment 8) — Section 9.8's `coverage()` and the gap
+  register (`gap_register()`), Increment 8's own named deliverable
+  distinct from `coverage()` itself. `Concept` is one per `ConceptCluster`
+  (not per candidate) - a cluster with no synthesised candidate becomes
+  a `"gap"` concept, the spec's own named category. No agent wrapper
+  exists ("Coverage Scorer... Pure arithmetic," §7.7) - called directly,
+  the same "no orchestrator needed" precedent as Increment 7's
+  `run_clustering()`.
+
+See `docs/increments.md` for what Increment 8 built and verified.

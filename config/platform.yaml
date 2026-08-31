@@ -111,6 +111,17 @@ clustering:
   block_top_k: 25
   block_max_size: 40
 
+# Coverage computation (Section 9.8). region_floor, domain_target and
+# resolution_weights are transcribed verbatim from the spec's own
+# REGION_FLOOR/DOMAIN_TARGET/RESOLUTION constants.
+coverage:
+  region_floor: 0.85
+  domain_target: 0.90
+  resolution_weights:
+    core: 1.0
+    extension: 0.5
+    gap: 0.0
+
 # Dotted spelling matches the spec's own Section 15.3 flag names; translated
 # to snake_case by FeatureFlags.from_dotted (config/settings.py) before
 # PlatformSettings is constructed.

@@ -203,6 +203,26 @@ class ClusteringConfig(BaseModel):
         return self
 
 
+class ResolutionWeights(BaseModel):
+    """Section 9.8's RESOLUTION dict, transcribed verbatim."""
+
+    core: float = Field(default=1.0, ge=0.0, le=1.0)
+    extension: float = Field(default=0.5, ge=0.0, le=1.0)
+    gap: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+class CoverageConfig(BaseModel):
+    """Coverage computation (Section 9.8). region_floor/domain_target/
+    resolution_weights are transcribed verbatim from the spec's own
+    REGION_FLOOR/DOMAIN_TARGET/RESOLUTION constants - "configuration
+    pinned in the run manifest" in spirit, the same reasoning
+    ClusteringConfig's own weights/type_compatibility already follow."""
+
+    region_floor: float = Field(default=0.85, ge=0.0, le=1.0)
+    domain_target: float = Field(default=0.90, ge=0.0, le=1.0)
+    resolution_weights: ResolutionWeights = Field(default_factory=ResolutionWeights)
+
+
 def _require_hex64(value: str, field_label: str) -> None:
     if not re.fullmatch(r"[0-9a-f]{64}", value):
         raise ValueError(f"{field_label} must be exactly 64 lowercase hex characters (32 bytes)")
@@ -303,6 +323,7 @@ class PlatformSettings(BaseSettings):
     feature_flags: FeatureFlags
     relevance: RelevanceConfig
     clustering: ClusteringConfig = Field(default_factory=ClusteringConfig)
+    coverage: CoverageConfig = Field(default_factory=CoverageConfig)
 
 
 def load_settings(yaml_path: Path | None = None) -> PlatformSettings:
