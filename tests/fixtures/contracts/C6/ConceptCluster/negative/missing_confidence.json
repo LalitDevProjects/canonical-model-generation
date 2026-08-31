@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://claim-date",
+  "proposedConcept": "claimDate",
+  "members": [
+    { "attributeId": "attr://us/art-claims-openapi-us/claim.claimDate", "region": "us", "role": "core", "pairScore": 1.0 }
+  ],
+  "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+}

@@ -1,0 +1,19 @@
+{
+  "domain": "claims",
+  "score": 0.91,
+  "denominator": 42,
+  "weightSum": 128,
+  "perRegion": { "us": 0.95, "uk": 0.9, "eu": 0.86 },
+  "gate1Pass": true,
+  "gate2Pass": true,
+  "gate3Pass": true,
+  "specifiedVsInferred": { "specified": 36, "inferred": 6 },
+  "exclusions": [
+    {
+      "uri": "https://vendor.example.com/partner-api-spec",
+      "reason": "licence-blocked",
+      "detail": "Vendor licence disposition not yet recorded as permitted.",
+      "decidedBy": "integration-architect"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C9/GapEntry/1.0.json",
+  "title": "C9 GapEntry",
+  "description": "INTERPRETED, NOT VERBATIM SPEC: no field definition exists anywhere in TECHNICAL_SPECIFICATION.txt beyond a single API reference (GET /gaps -> {gaps: [GapEntry]}). Fully synthesized for Increment 1 to have an internally-consistent shape; revise once Increment 8 (coverage computation, gap register) implements the logic that actually produces these.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["conceptId", "weight", "reason", "affectedRegions"],
+  "properties": {
+    "conceptId": { "type": "string", "description": "ConceptCluster or CanonicalCandidate reference this gap concerns." },
+    "weight": { "type": "integer", "enum": [5, 3, 1] },
+    "reason": {
+      "type": "string",
+      "enum": ["unresolved", "unevidenced", "excluded", "below-region-floor"]
+    },
+    "affectedRegions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "../../common/defs.json#/$defs/region" }
+    },
+    "recommendation": { "type": "string" },
+    "evidenceRefs": {
+      "type": "array",
+      "items": { "$ref": "../../common/defs.json#/$defs/evidenceRef" }
+    }
+  }
+}

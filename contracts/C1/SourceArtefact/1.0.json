@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C1/SourceArtefact/1.0.json",
+  "title": "C1 SourceArtefact",
+  "description": "Extracted from the artefact-item object the spec embeds inline within C4 CorpusManifest.artefacts (Section 3.4), pulled out into its own $ref-able schema for single-source-of-truth generation rather than duplicated inline.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artefactId", "region", "system", "uri", "version",
+    "contentHash", "evidenceTier", "sanitisation"
+  ],
+  "properties": {
+    "artefactId": { "type": "string" },
+    "region": { "$ref": "../../common/defs.json#/$defs/region" },
+    "system": { "$ref": "../../common/defs.json#/$defs/system" },
+    "uri": { "type": "string" },
+    "version": {
+      "type": "string",
+      "description": "Pin per system: git/ado/bitbucket/gitlab=commit SHA, confluence/jira=page/issue version, catalogue=release tag."
+    },
+    "contentHash": { "$ref": "../../common/defs.json#/$defs/sha256Hex" },
+    "mediaType": { "type": "string" },
+    "owningTeam": { "type": "string" },
+    "deployed": { "type": "boolean" },
+    "evidenceTier": { "$ref": "../../common/defs.json#/$defs/evidenceTier" },
+    "sanitisation": { "$ref": "../../C2/SanitisationRecord/1.0.json" }
+  }
+}

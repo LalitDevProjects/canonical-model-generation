@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://claim-status",
+  "acordRef": "acord://Claim.claimStatusCd",
+  "verdict": "partial",
+  "deviation": "Cluster's enumeration has 2 values; ACORD's code list has 6. Coarser granularity only.",
+  "rationale": "Concept matches but the value domain is a strict subset of the ACORD code list.",
+  "evidenceRefs": ["evref://uk/confluence/art-claims-openapi-uk@dba0082ec68e72d4#/claimStatus"]
+}

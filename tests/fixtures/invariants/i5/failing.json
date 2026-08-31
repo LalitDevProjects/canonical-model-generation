@@ -1,0 +1,15 @@
+{
+  "description": "An entry carries both transform and disposition - Pydantic alone accepts this (see contracts/validators.py module docstring); the invariant check is what catches it.",
+  "spec": {
+    "header": {
+      "mappingSpecId": "mapping-contradictory",
+      "canonicalRef": "canon://Claim.claimDate",
+      "direction": "toCanonical",
+      "generatedFrom": { "run": "11111111-1111-1111-1111-111111111111", "corpusManifest": "cm-1", "agent": "mapping-generator" }
+    },
+    "mappings": [
+      { "canonical": "claimDate", "evidence": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"], "transform": "parseDate(format='YYYY-MM-DD')", "disposition": { "status": "unmapped", "reason": "contradiction fixture" } }
+    ]
+  },
+  "expect_violations": true
+}

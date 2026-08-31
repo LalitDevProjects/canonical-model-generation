@@ -1,0 +1,15 @@
+{
+  "entryId": "ledger-us-000003",
+  "at": "2026-08-20T09:12:00Z",
+  "region": "us",
+  "artefactId": "art-claims-openapi-us",
+  "contentHash": "042896dc1966b8a6214e5383aba5b8b931cfa049d17aafa37eb8a77c859b95da",
+  "classification": ["STRUCTURAL"],
+  "verdict": "allow",
+  "policyVersion": 3,
+  "lawfulBasis": "legitimate-interest",
+  "approver": null,
+  "prevHash": "dfd5922f5aa9441e95d21ed58bb9f2209a004912a1232e89f75f725bd37f3d4a",
+  "hash": "8c09b37123eb0d9dcec63788149e576b1614ed481ad002512d0a47a09cbf59fc",
+  "signature": "sig-us-000003"
+}

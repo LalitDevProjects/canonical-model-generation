@@ -1,0 +1,19 @@
+{
+  "description": "A scored attribute contributes to the CoverageReport without a named ratifying SME.",
+  "report": {
+    "domain": "claims",
+    "score": 0.91,
+    "denominator": 42,
+    "weightSum": 128,
+    "perRegion": { "us": 0.95, "uk": 0.9, "eu": 0.86 },
+    "gate1Pass": true,
+    "gate2Pass": true,
+    "gate3Pass": true,
+    "specifiedVsInferred": { "specified": 36, "inferred": 6 },
+    "exclusions": []
+  },
+  "scored_attributes": [
+    { "conceptId": "cluster://claim-date", "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"], "ratifyingSme": null }
+  ],
+  "expect_violations": true
+}

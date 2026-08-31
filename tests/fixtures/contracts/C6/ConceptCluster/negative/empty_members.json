@@ -1,0 +1,7 @@
+{
+  "clusterId": "cluster://claim-date",
+  "proposedConcept": "claimDate",
+  "members": [],
+  "confidence": 0.88,
+  "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+}

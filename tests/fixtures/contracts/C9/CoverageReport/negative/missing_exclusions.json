@@ -1,0 +1,11 @@
+{
+  "domain": "claims",
+  "score": 0.91,
+  "denominator": 42,
+  "weightSum": 128,
+  "perRegion": { "us": 0.95, "uk": 0.9, "eu": 0.86 },
+  "gate1Pass": true,
+  "gate2Pass": true,
+  "gate3Pass": true,
+  "specifiedVsInferred": { "specified": 36, "inferred": 6 }
+}

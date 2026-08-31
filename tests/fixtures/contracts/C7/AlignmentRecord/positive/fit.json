@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://claim-date",
+  "acordRef": "acord://Claim.lossDate",
+  "verdict": "fit",
+  "deviation": null,
+  "rationale": "Direct semantic and structural match to ACORD Claim.lossDate.",
+  "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+}

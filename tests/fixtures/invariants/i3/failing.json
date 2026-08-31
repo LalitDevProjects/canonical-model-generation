@@ -1,0 +1,23 @@
+{
+  "description": "CanonicalCandidate's clusterRef points to a cluster that doesn't exist in this run's cluster set.",
+  "candidates": [
+    {
+      "candidateId": "canon://Claim.claimDate",
+      "entity": "Claim",
+      "attribute": "claimDate",
+      "dataType": "date",
+      "cardinality": "1..1",
+      "obligation": { "level": "mandatory" },
+      "placement": "core",
+      "placementRule": "present with mandatory obligation in all 3 regions",
+      "namingSource": "acord",
+      "rationale": "r",
+      "clusterRefs": ["cluster://does-not-exist"],
+      "weight": 5,
+      "ratification": { "status": "pending", "sme": null, "decidedAt": null }
+    }
+  ],
+  "clusters": [],
+  "attributes": [],
+  "expect_violations": true
+}

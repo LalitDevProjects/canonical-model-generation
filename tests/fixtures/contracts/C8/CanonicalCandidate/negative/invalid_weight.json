@@ -1,0 +1,15 @@
+{
+  "candidateId": "canon://Claim.claimDate",
+  "entity": "Claim",
+  "attribute": "claimDate",
+  "dataType": "date",
+  "cardinality": "1..1",
+  "obligation": { "level": "mandatory" },
+  "placement": "core",
+  "placementRule": "present with mandatory obligation in all 3 regions",
+  "namingSource": "acord",
+  "rationale": "r",
+  "clusterRefs": ["cluster://claim-date"],
+  "weight": 4,
+  "ratification": { "status": "pending", "sme": null, "decidedAt": null }
+}

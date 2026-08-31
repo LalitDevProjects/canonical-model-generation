@@ -1,0 +1,14 @@
+{
+  "attributeId": "attr://us/art-claims-openapi-us/claim.claimDate",
+  "runId": "11111111-1111-1111-1111-111111111111",
+  "region": "us",
+  "sourceContract": "art-claims-openapi-us",
+  "path": "claim.claimDate",
+  "localName": "claimDate",
+  "dataType": "date",
+  "cardinality": "1..1",
+  "obligation": { "level": "mandatory" },
+  "evidenceTier": 1,
+  "inferred": false,
+  "evidenceRefs": []
+}

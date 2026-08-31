@@ -1,0 +1,32 @@
+{
+  "description": "ConceptCluster member's attributeId resolves to an AttributeRecord produced within the same run.",
+  "run_id": "11111111-1111-1111-1111-111111111111",
+  "clusters": [
+    {
+      "clusterId": "cluster://claim-date",
+      "proposedConcept": "claimDate",
+      "members": [
+        { "attributeId": "attr://us/art-claims-openapi-us/claim.claimDate", "region": "us", "role": "core", "pairScore": 1.0 }
+      ],
+      "confidence": 0.9,
+      "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+    }
+  ],
+  "attributes": [
+    {
+      "attributeId": "attr://us/art-claims-openapi-us/claim.claimDate",
+      "runId": "11111111-1111-1111-1111-111111111111",
+      "region": "us",
+      "sourceContract": "art-claims-openapi-us",
+      "path": "claim.claimDate",
+      "localName": "claimDate",
+      "dataType": "date",
+      "cardinality": "1..1",
+      "obligation": { "level": "mandatory" },
+      "evidenceTier": 1,
+      "inferred": false,
+      "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+    }
+  ],
+  "expect_violations": false
+}

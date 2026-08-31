@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C5/AttributeRecord/1.0.json",
+  "title": "C5 AttributeRecord",
+  "description": "Transcribed from Section 3.3. The pivot contract of the platform: normalized representation of a single attribute from source materials, with provenance (evidenceRefs) mandatory per invariant I1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "attributeId", "runId", "region", "sourceContract", "path", "localName",
+    "dataType", "cardinality", "obligation", "evidenceTier", "inferred", "evidenceRefs"
+  ],
+  "properties": {
+    "attributeId": { "$ref": "../../common/defs.json#/$defs/attrId" },
+    "runId": { "$ref": "../../common/defs.json#/$defs/uuid" },
+    "region": { "$ref": "../../common/defs.json#/$defs/region" },
+    "sourceContract": { "type": "string", "description": "artefactId of the CorpusManifest artefact this was extracted from." },
+    "path": { "type": "string", "description": "Dot-delimited normalised path within the source." },
+    "localName": { "type": "string" },
+    "dataType": { "$ref": "../../common/defs.json#/$defs/dataType" },
+    "typeDetail": {
+      "type": "object",
+      "description": "Free-form at Increment 1 (format/precision/itemType/refTarget). Tightened once Increment 3 (parsers/type normalisation) defines exact per-dataType shapes."
+    },
+    "cardinality": { "$ref": "../../common/defs.json#/$defs/cardinality" },
+    "obligation": { "$ref": "../../common/defs.json#/$defs/obligation" },
+    "enumeration": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value"],
+        "properties": {
+          "value": { "type": "string" },
+          "meaning": { "type": "string" },
+          "source": { "type": "string", "enum": ["declared", "documented", "observed"] }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "expression"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["length", "pattern", "range", "format", "crossField", "custom"]
+          },
+          "expression": { "type": "string" },
+          "source": { "type": "string", "enum": ["schema", "code", "documentation"] }
+        }
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "glossaryRefs": { "type": "array", "items": { "type": "string" } },
+        "ruleStatements": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "parentPath": { "type": ["string", "null"] },
+    "siblingCount": { "type": "integer", "minimum": 0 },
+    "evidenceTier": { "$ref": "../../common/defs.json#/$defs/evidenceTier" },
+    "inferred": { "type": "boolean" },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "../../common/defs.json#/$defs/evidenceRef" },
+      "description": "Invariant I1: non-empty and every reference MUST resolve to an artefact listed in the run's CorpusManifest (cross-document; see contracts/validators.py:check_i1_evidence_resolvable)."
+    },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "producedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stage": { "const": "S3" },
+        "agent": { "type": "string" },
+        "toolVersion": { "type": "string" }
+      }
+    }
+  }
+}

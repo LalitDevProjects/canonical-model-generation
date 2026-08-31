@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C7/AlignmentRecord/1.0.json",
+  "title": "C7 AlignmentRecord",
+  "description": "Renamed from an earlier hand-written 'Alignment' model to match the spec's own naming. Guardrail G1 (verdict=fit REQUIRES a non-null acordRef, anti-hallucination) and the partial/misfit counterparts are encoded as if/then conditionals, which jsonschema.Draft202012Validator enforces but generated Pydantic models do NOT (see contracts/validators.py module docstring) - fixture tests and any future write path must run both.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["clusterId", "acordRef", "verdict", "deviation", "rationale", "evidenceRefs"],
+  "properties": {
+    "clusterId": { "$ref": "../../common/defs.json#/$defs/clusterRef" },
+    "acordRef": {
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "../../common/defs.json#/$defs/acordRef" }
+      ]
+    },
+    "verdict": { "type": "string", "enum": ["fit", "partial", "misfit"] },
+    "deviation": { "type": ["string", "null"] },
+    "rationale": { "type": "string" },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "../../common/defs.json#/$defs/evidenceRef" },
+      "description": "Guardrail: a 'fit' verdict MUST cite a reference actually returned within that agent invocation (anti-hallucination); not schema-checkable, enforced at the agent-runtime validation ladder (Increment 6)."
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "verdict": { "const": "fit" } } },
+      "then": {
+        "properties": {
+          "acordRef": { "$ref": "../../common/defs.json#/$defs/acordRef" },
+          "deviation": { "const": null }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "verdict": { "const": "partial" } } },
+      "then": {
+        "properties": {
+          "acordRef": { "$ref": "../../common/defs.json#/$defs/acordRef" },
+          "deviation": { "type": "string" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "verdict": { "const": "misfit" } } },
+      "then": {
+        "properties": {
+          "acordRef": { "const": null }
+        }
+      }
+    }
+  ]
+}

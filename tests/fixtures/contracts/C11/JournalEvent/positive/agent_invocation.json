@@ -1,0 +1,16 @@
+{
+  "runId": "11111111-1111-1111-1111-111111111111",
+  "seq": 42,
+  "at": "2026-08-20T08:15:00Z",
+  "kind": "agent.invocation",
+  "stage": "S6",
+  "agent": "semantic-resolver",
+  "workItem": "work-item-0007",
+  "modelId": "fast-v1@2026-07",
+  "promptVersion": "1.2.0",
+  "tokensIn": 1840,
+  "tokensOut": 220,
+  "latencyMs": 950,
+  "outcome": "ok",
+  "artefactRefs": ["cluster://claim-date"]
+}

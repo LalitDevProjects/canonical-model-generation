@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://internal-triage-flag",
+  "acordRef": "acord://Claim.someConcept",
+  "verdict": "misfit",
+  "deviation": null,
+  "rationale": "Contradiction: claims no ACORD concept fits, yet cites one - misfit must carry a null acordRef.",
+  "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/triageFlag"]
+}

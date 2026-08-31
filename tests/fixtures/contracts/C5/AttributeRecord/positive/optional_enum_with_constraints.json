@@ -1,0 +1,24 @@
+{
+  "attributeId": "attr://uk/art-claims-openapi-uk/claim.claimStatus",
+  "runId": "11111111-1111-1111-1111-111111111111",
+  "region": "uk",
+  "sourceContract": "art-claims-openapi-uk",
+  "path": "claim.claimStatus",
+  "localName": "claimStatus",
+  "dataType": "string",
+  "cardinality": "0..1",
+  "obligation": { "level": "conditional", "condition": "required when claim.status = OPEN" },
+  "enumeration": [
+    { "value": "OPEN", "meaning": "Claim is open", "source": "declared" },
+    { "value": "CLOSED", "meaning": "Claim is closed", "source": "declared" }
+  ],
+  "constraints": [
+    { "kind": "length", "expression": "maxLength=16", "source": "schema" }
+  ],
+  "parentPath": "claim",
+  "siblingCount": 7,
+  "evidenceTier": 2,
+  "inferred": false,
+  "evidenceRefs": ["evref://uk/confluence/art-claims-openapi-uk@dba0082ec68e72d4#/claimStatus"],
+  "confidence": 0.9
+}

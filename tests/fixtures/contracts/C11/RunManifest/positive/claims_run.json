@@ -1,0 +1,21 @@
+{
+  "runId": "11111111-1111-1111-1111-111111111111",
+  "domain": "claims",
+  "trigger": { "kind": "manual", "requestedBy": "integration-architect", "at": "2026-08-20T08:00:00Z" },
+  "corpusHash": "c1db13ab836db24060490c83b83c089adb1ce9e6e1899d81e02d398cec22e6b1",
+  "pins": {
+    "prompts": { "semanticResolver": "1.2.0", "acordAligner": "1.0.0" },
+    "models": { "fast": "fast-v1@2026-07", "high": "high-v1@2026-07" },
+    "tools": { "substrateApi": "2.1.0" },
+    "algorithms": { "clustering": "1.0.0", "coverage": "1.0.0" }
+  },
+  "parameters": { "linkThreshold": 0.72, "reviewBandLow": 0.55, "topK": 25 },
+  "budget": {
+    "tokensTotal": 40000000,
+    "costCeilingGbp": 900,
+    "perStage": { "S3": 0.15, "S4": 0.2, "S5": 0.25 }
+  },
+  "previousRunId": null,
+  "state": "RUNNING",
+  "createdBy": "integration-architect"
+}

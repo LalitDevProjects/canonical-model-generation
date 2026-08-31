@@ -1,0 +1,28 @@
+# Local Postgres + pgvector for later increments (substrate/registry -
+# Increment 5 concept graph and vector index, Increment 11 artefact
+# registry). Not used by Increment 1: no runtime code in this increment
+# connects to a database. Per the spec's own tech-stack guidance (Section
+# 2.3): "Below roughly 5 million chunks, pgvector is one fewer system to
+# operate" - vs. a managed search service or a separate graph database.
+#
+# Usage once Docker Desktop is running: `docker compose -f infra/docker-compose.yml up -d`
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cmgp
+      POSTGRES_PASSWORD: cmgp
+      POSTGRES_DB: cmgp
+    ports:
+      - "5432:5432"
+    volumes:
+      - cmgp-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cmgp -d cmgp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  cmgp-postgres-data:

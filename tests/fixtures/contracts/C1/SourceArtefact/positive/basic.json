@@ -1,0 +1,21 @@
+{
+  "artefactId": "art-claims-openapi-us",
+  "region": "us",
+  "system": "git",
+  "uri": "https://git.example.internal/claims/openapi-us",
+  "version": "8f3c1a2",
+  "contentHash": "042896dc1966b8a6214e5383aba5b8b931cfa049d17aafa37eb8a77c859b95da",
+  "mediaType": "application/x-yaml",
+  "owningTeam": "claims-platform",
+  "deployed": true,
+  "evidenceTier": 1,
+  "sanitisation": {
+    "artefactId": "art-claims-openapi-us",
+    "contentHash": "042896dc1966b8a6214e5383aba5b8b931cfa049d17aafa37eb8a77c859b95da",
+    "labels": ["STRUCTURAL"],
+    "verdict": "allow",
+    "licenceDisposition": "permitted",
+    "policyVersion": 3,
+    "classifiedAt": "2026-08-20T09:00:00Z"
+  }
+}

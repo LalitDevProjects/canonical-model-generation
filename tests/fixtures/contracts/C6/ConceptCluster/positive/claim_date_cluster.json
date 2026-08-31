@@ -1,0 +1,15 @@
+{
+  "clusterId": "cluster://claim-date",
+  "proposedConcept": "claimDate",
+  "members": [
+    { "attributeId": "attr://us/art-claims-openapi-us/claim.claimDate", "region": "us", "role": "core", "pairScore": 1.0 },
+    { "attributeId": "attr://uk/art-claims-openapi-uk/claim.dateOfLoss", "region": "uk", "role": "variant", "pairScore": 0.81 }
+  ],
+  "conflictClass": "synonym",
+  "conflictDetail": "UK source names the same concept dateOfLoss rather than claimDate.",
+  "confidence": 0.88,
+  "evidenceRefs": [
+    "evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate",
+    "evref://uk/confluence/art-claims-openapi-uk@dba0082ec68e72d4#/dateOfLoss"
+  ]
+}

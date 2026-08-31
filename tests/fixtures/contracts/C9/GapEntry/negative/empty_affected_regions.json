@@ -1,0 +1,6 @@
+{
+  "conceptId": "cluster://policy-excess-amount",
+  "weight": 5,
+  "reason": "unresolved",
+  "affectedRegions": []
+}

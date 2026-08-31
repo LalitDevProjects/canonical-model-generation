@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C11/JournalEvent/1.0.json",
+  "title": "C11 JournalEvent",
+  "description": "Transcribed from the worked example in Section 3.6. Immutable append-only event log entry; every new pipeline stage or agent invocation in later increments must emit these (Definition of Done, Section 17.5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["runId", "seq", "at", "kind"],
+  "properties": {
+    "runId": { "$ref": "../../common/defs.json#/$defs/uuid" },
+    "seq": { "type": "integer", "minimum": 0 },
+    "at": { "$ref": "../../common/defs.json#/$defs/dateTime" },
+    "kind": {
+      "type": "string",
+      "enum": ["stage.transition", "agent.invocation", "tool.call", "validation.failure", "human.decision", "budget.event"]
+    },
+    "stage": { "type": "string" },
+    "agent": { "type": "string" },
+    "workItem": { "type": "string" },
+    "modelId": { "type": "string" },
+    "promptVersion": { "type": "string" },
+    "tokensIn": { "type": "integer", "minimum": 0 },
+    "tokensOut": { "type": "integer", "minimum": 0 },
+    "latencyMs": { "type": "integer", "minimum": 0 },
+    "outcome": { "type": "string", "enum": ["ok", "retry", "escalated", "failed"] },
+    "artefactRefs": { "type": "array", "items": { "type": "string" } }
+  }
+}

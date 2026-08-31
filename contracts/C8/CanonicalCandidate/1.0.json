@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C8/CanonicalCandidate/1.0.json",
+  "title": "C8 CanonicalCandidate",
+  "description": "Renamed from an earlier hand-written 'Candidate' model to match the spec's own naming (CanonicalCandidate). Subject to human ratification per the platform's key constraint: the platform proposes, humans ratify.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "candidateId", "entity", "attribute", "dataType", "cardinality", "obligation",
+    "placement", "placementRule", "namingSource", "rationale", "clusterRefs",
+    "weight", "ratification"
+  ],
+  "properties": {
+    "candidateId": { "$ref": "../../common/defs.json#/$defs/candidateRef" },
+    "entity": { "type": "string" },
+    "attribute": { "type": "string" },
+    "dataType": { "$ref": "../../common/defs.json#/$defs/dataType" },
+    "cardinality": { "$ref": "../../common/defs.json#/$defs/cardinality" },
+    "obligation": { "$ref": "../../common/defs.json#/$defs/obligation" },
+    "placement": {
+      "type": "string",
+      "enum": ["core", "extension:us", "extension:uk", "extension:eu"]
+    },
+    "placementRule": { "type": "string", "description": "Which core/extension partitioning rule fired (Section 9.7)." },
+    "namingSource": { "type": "string", "enum": ["acord", "derived"] },
+    "rationale": { "type": "string" },
+    "clusterRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "../../common/defs.json#/$defs/clusterRef" },
+      "description": "Invariant I3: every CanonicalCandidate MUST trace to at least one ConceptCluster, and transitively to at least one AttributeRecord (cross-document; see contracts/validators.py:check_i3_candidate_traces_to_attribute)."
+    },
+    "weight": { "type": "integer", "enum": [5, 3, 1], "description": "Criticality weight: 5=regulatory, 3=business, 1=optional." },
+    "ratification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "sme", "decidedAt"],
+      "properties": {
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "revised"] },
+        "sme": { "type": ["string", "null"] },
+        "decidedAt": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "../../common/defs.json#/$defs/dateTime" }
+          ]
+        }
+      }
+    }
+  }
+}

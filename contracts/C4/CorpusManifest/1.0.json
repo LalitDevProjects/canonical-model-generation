@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C4/CorpusManifest/1.0.json",
+  "title": "C4 CorpusManifest",
+  "description": "Transcribed from Section 3.4. The 'exclusions' key is required (may be an empty array) per the spec's own rule that a silently excluded source is indistinguishable from an absent one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["runId", "domain", "sealedAt", "corpusHash", "artefacts", "exclusions"],
+  "properties": {
+    "runId": { "$ref": "../../common/defs.json#/$defs/uuid" },
+    "domain": { "type": "string" },
+    "sealedAt": { "$ref": "../../common/defs.json#/$defs/dateTime" },
+    "corpusHash": {
+      "$ref": "../../common/defs.json#/$defs/sha256Hex",
+      "description": "sha256 over the sorted artefact content hashes; MUST be stable across repeats over an unchanged corpus."
+    },
+    "artefacts": {
+      "type": "array",
+      "items": { "$ref": "../../C1/SourceArtefact/1.0.json" }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": { "$ref": "../../common/defs.json#/$defs/exclusionEntry" }
+    }
+  }
+}

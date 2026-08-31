@@ -1,0 +1,39 @@
+# Platform default configuration (Section 15.1). Increment 1 scope: this
+# file exists and is well-typed (config/settings.py); it isn't consumed by
+# any runtime yet since no pipeline runtime exists until later increments.
+environment: dev
+
+models:
+  tiers:
+    fast:
+      provider: primary
+      tier_id: fast-v1
+      max_tokens: 8000
+    high:
+      provider: primary
+      tier_id: high-v1
+      max_tokens: 16000
+    critic:
+      provider: secondary
+      tier_id: critic-v1
+      max_tokens: 12000
+  embedding_tier_id: embed-v1
+  embedding_dimensions: 1024
+
+storage:
+  postgres_dsn: "postgresql://cmgp:cmgp@localhost:5432/cmgp"
+  pgvector_enabled: true
+
+egress:
+  policy_version: 1
+  fail_mode: closed
+
+# Dotted spelling matches the spec's own Section 15.3 flag names; translated
+# to snake_case by FeatureFlags.from_dotted (config/settings.py) before
+# PlatformSettings is constructed.
+feature_flags:
+  acord.ingestion.enabled: false
+  inference.enabled: true
+  critic.secondary_provider: true
+  gate.dpo_override.enabled: false
+  emission.strict_determinism: true

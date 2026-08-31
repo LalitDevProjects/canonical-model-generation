@@ -1,0 +1,8 @@
+{
+  "conceptId": "cluster://policy-excess-amount",
+  "weight": 5,
+  "reason": "unresolved",
+  "affectedRegions": ["eu"],
+  "recommendation": "Escalate to EU SME workshop; no candidate ACORD alignment reached triage threshold.",
+  "evidenceRefs": ["evref://eu/git/art-claims-openapi-eu@c1db13ab836db240#/excessAmount"]
+}

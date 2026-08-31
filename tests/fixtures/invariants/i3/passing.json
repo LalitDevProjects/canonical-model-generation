@@ -1,0 +1,48 @@
+{
+  "description": "CanonicalCandidate traces through a real ConceptCluster to a real AttributeRecord.",
+  "candidates": [
+    {
+      "candidateId": "canon://Claim.claimDate",
+      "entity": "Claim",
+      "attribute": "claimDate",
+      "dataType": "date",
+      "cardinality": "1..1",
+      "obligation": { "level": "mandatory" },
+      "placement": "core",
+      "placementRule": "present with mandatory obligation in all 3 regions",
+      "namingSource": "acord",
+      "rationale": "r",
+      "clusterRefs": ["cluster://claim-date"],
+      "weight": 5,
+      "ratification": { "status": "pending", "sme": null, "decidedAt": null }
+    }
+  ],
+  "clusters": [
+    {
+      "clusterId": "cluster://claim-date",
+      "proposedConcept": "claimDate",
+      "members": [
+        { "attributeId": "attr://us/art-claims-openapi-us/claim.claimDate", "region": "us", "role": "core", "pairScore": 1.0 }
+      ],
+      "confidence": 0.9,
+      "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+    }
+  ],
+  "attributes": [
+    {
+      "attributeId": "attr://us/art-claims-openapi-us/claim.claimDate",
+      "runId": "11111111-1111-1111-1111-111111111111",
+      "region": "us",
+      "sourceContract": "art-claims-openapi-us",
+      "path": "claim.claimDate",
+      "localName": "claimDate",
+      "dataType": "date",
+      "cardinality": "1..1",
+      "obligation": { "level": "mandatory" },
+      "evidenceTier": 1,
+      "inferred": false,
+      "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+    }
+  ],
+  "expect_violations": false
+}

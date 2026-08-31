@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://internal-triage-flag",
+  "acordRef": null,
+  "verdict": "misfit",
+  "deviation": null,
+  "rationale": "No ACORD Reference Architecture concept corresponds to this internal-only triage routing flag.",
+  "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/triageFlag"]
+}

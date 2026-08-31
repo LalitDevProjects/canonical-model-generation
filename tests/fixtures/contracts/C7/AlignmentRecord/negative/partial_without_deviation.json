@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://claim-status",
+  "acordRef": "acord://Claim.claimStatusCd",
+  "verdict": "partial",
+  "deviation": null,
+  "rationale": "Partial verdict but omits the required explanation of what deviates - should trip the guardrail.",
+  "evidenceRefs": ["evref://uk/confluence/art-claims-openapi-uk@dba0082ec68e72d4#/claimStatus"]
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C11/RunManifest/1.0.json",
+  "title": "C11 RunManifest",
+  "description": "Transcribed from the worked example in Section 3.6. 'state' is left as an open string rather than a closed enum: the spec gives only individual examples (CREATED, AWAIT_RATIFY, plus checkpoint names TRIAGE/RATIFY/ARB at Section 12.2, plus stage ids S1-S8 at Section 8.1) with no exhaustive list until the Increment 6 state machine is built - locking a closed enum now would risk a breaking contract-version change later.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["runId", "domain", "trigger", "corpusHash", "pins", "parameters", "budget", "state", "createdBy"],
+  "properties": {
+    "runId": { "$ref": "../../common/defs.json#/$defs/uuid" },
+    "domain": { "type": "string" },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "requestedBy", "at"],
+      "properties": {
+        "kind": { "type": "string" },
+        "requestedBy": { "type": "string" },
+        "at": { "$ref": "../../common/defs.json#/$defs/dateTime" }
+      }
+    },
+    "corpusHash": { "$ref": "../../common/defs.json#/$defs/sha256Hex" },
+    "pins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prompts", "models", "tools", "algorithms"],
+      "properties": {
+        "prompts": { "type": "object", "additionalProperties": { "type": "string" } },
+        "models": { "type": "object", "additionalProperties": { "type": "string" } },
+        "tools": { "type": "object", "additionalProperties": { "type": "string" } },
+        "algorithms": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Free-form key/number map: linkThreshold, reviewBandLow, topK, etc."
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tokensTotal", "costCeilingGbp", "perStage"],
+      "properties": {
+        "tokensTotal": { "type": "integer", "minimum": 0 },
+        "costCeilingGbp": { "type": "number", "minimum": 0 },
+        "perStage": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } }
+      }
+    },
+    "previousRunId": {
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "../../common/defs.json#/$defs/uuid" }
+      ]
+    },
+    "state": { "type": "string" },
+    "createdBy": { "type": "string" }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/common/defs.json",
+  "title": "Common definitions",
+  "description": "Shared $defs referenced by the C1-C11 contract schemas. Not a standalone contract; not code-generated into its own model file, only via $ref from other schemas.",
+  "$defs": {
+    "region": {
+      "type": "string",
+      "enum": ["us", "uk", "eu"]
+    },
+    "system": {
+      "type": "string",
+      "enum": ["git", "ado", "bitbucket", "gitlab", "confluence", "jira", "catalogue", "vendor"]
+    },
+    "evidenceRef": {
+      "type": "string",
+      "description": "evref://{region}/{system}/{artefactId}@{contentHash}#{locator}. Pattern tightened beyond the spec's literal loose ^evref:// check to validate structure while still accepting every example given in the spec text.",
+      "pattern": "^evref://(us|uk|eu)/(git|ado|bitbucket|gitlab|confluence|jira|catalogue|vendor)/[^@/]+@[0-9a-f]{16}#.+$"
+    },
+    "attrId": {
+      "type": "string",
+      "description": "attr://{region}/{contractId}/{normalisedPath}. Pattern tightened beyond the spec's literal loose ^attr://(us|uk|eu)/[^/]+/.+$ check (same acceptance set, stricter rejection of malformed contractId).",
+      "pattern": "^attr://(us|uk|eu)/[^/\\s]+/[^\\s]+$"
+    },
+    "clusterRef": {
+      "type": "string",
+      "pattern": "^cluster://[^\\s]+$"
+    },
+    "acordRef": {
+      "type": "string",
+      "pattern": "^acord://[^\\s]+$"
+    },
+    "candidateRef": {
+      "type": "string",
+      "pattern": "^canon://[^\\s]+$"
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sha256Hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evidenceTier": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 6,
+      "description": "1 = strongest (e.g. deployed contract), 6 = weakest (e.g. inferred from documentation prose)."
+    },
+    "obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["mandatory", "conditional", "optional"]
+        },
+        "condition": {
+          "type": "string",
+          "description": "Required when level=conditional in spirit; not schema-enforced (spec does not mandate this as a hard schema rule, only as a documentation convention)."
+        }
+      }
+    },
+    "cardinality": {
+      "type": "string",
+      "enum": ["0..1", "1..1", "0..n", "1..n"]
+    },
+    "dataType": {
+      "type": "string",
+      "enum": [
+        "string", "integer", "decimal", "boolean", "date", "dateTime",
+        "time", "duration", "binary", "object", "array", "reference", "unknown"
+      ]
+    },
+    "sanitisationLabel": {
+      "type": "string",
+      "enum": [
+        "STRUCTURAL", "DOCUMENTARY", "IDENTIFYING",
+        "SAMPLE_VALUE", "PERSONAL_DATA", "SENSITIVE_DOMAIN"
+      ]
+    },
+    "sanitisationVerdict": {
+      "type": "string",
+      "enum": ["allow", "mask", "block"]
+    },
+    "exclusionReason": {
+      "type": "string",
+      "enum": [
+        "out-of-domain", "superseded", "licence-blocked",
+        "access-denied", "unparseable", "duplicate", "manual"
+      ]
+    },
+    "exclusionEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uri", "reason", "decidedBy"],
+      "properties": {
+        "uri": { "type": "string" },
+        "reason": { "$ref": "#/$defs/exclusionReason" },
+        "detail": { "type": "string" },
+        "decidedBy": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C6/ConceptCluster/1.0.json",
+  "title": "C6 ConceptCluster",
+  "description": "Full schema designed from the spec's abridged illustrative JSON example (Section 3.5); required/type/enum choices beyond the example fields are an Increment 1 design call.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["clusterId", "proposedConcept", "members", "confidence", "evidenceRefs"],
+  "properties": {
+    "clusterId": { "$ref": "../../common/defs.json#/$defs/clusterRef" },
+    "proposedConcept": { "type": "string" },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["attributeId", "region", "role", "pairScore"],
+        "properties": {
+          "attributeId": { "$ref": "../../common/defs.json#/$defs/attrId" },
+          "region": { "$ref": "../../common/defs.json#/$defs/region" },
+          "role": { "type": "string", "enum": ["core", "variant"] },
+          "pairScore": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "conflictClass": {
+      "type": ["string", "null"],
+      "enum": ["synonym", "homonym", "granularity", "type", "enumeration", "obligation", null]
+    },
+    "conflictDetail": { "type": "string" },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "dissent": { "type": "string" },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "whyRejected"],
+        "properties": {
+          "description": { "type": "string" },
+          "whyRejected": { "type": "string" }
+        }
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "../../common/defs.json#/$defs/evidenceRef" },
+      "description": "Invariant I2: every member's attributeId MUST reference an AttributeRecord produced within the same run (cross-document; see contracts/validators.py:check_i2_cluster_members_same_run)."
+    }
+  }
+}

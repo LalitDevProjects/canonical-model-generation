@@ -1,0 +1,119 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "canonical-model-generation"
+version = "0.1.0"
+description = "Platform for deriving canonical domain models from regional API estates"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Proprietary"}
+authors = [
+    {name = "Integration Architect", email = "author@example.com"}
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+# Increment 1 scope only. Later increments add dependencies as their own
+# scope requires them (connectors/parsers at I2-I3, agent/model gateway at
+# I6, algorithms at I7-I8, mapping DSL at I9, observability at I14) rather
+# than front-loading unused packages now.
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "pyyaml>=6.0",
+    "jsonschema>=4.18",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "coverage>=7.4",
+    "mypy>=1.8",
+    "types-PyYAML>=6.0",
+    "types-jsonschema>=4.18",
+    "datamodel-code-generator>=0.76,<0.77",
+    "black>=23.7",
+    "isort>=5.12",
+    "pre-commit>=3.3",
+]
+
+[project.urls]
+Homepage = "https://github.com/example/canonical-model-generation"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["contracts*", "generated*", "config*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+extend-exclude = '''
+/(
+  \.git
+  | \.venv
+  | archive
+  | extracted
+  | generated
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_glob = ["generated/*", "archive/*"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+mypy_path = ["generated"]
+exclude = "^(archive/|extracted/)"
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers --tb=short"
+markers = [
+    "unit: unit tests",
+    "contracts: JSON Schema / generated-model fixture tests",
+]
+
+[tool.coverage.run]
+source = ["generated", "contracts", "config"]
+omit = [
+    "*/tests/*",
+    "generated/py.typed",
+]
+
+[tool.coverage.report]
+fail_under = 85
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

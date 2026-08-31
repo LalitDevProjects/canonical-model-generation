@@ -1,0 +1,14 @@
+{
+  "artefactId": "art-claims-openapi-uk",
+  "contentHash": "dba0082ec68e72d47fa926dcc91fb9b00961ceb4342554a0c2aa567144a5a6d3",
+  "labels": ["STRUCTURAL", "PERSONAL_DATA"],
+  "verdict": "mask",
+  "detectorHits": [
+    { "rung": "L2", "detector": "regex.email", "count": 3 },
+    { "rung": "L3", "detector": "example-value.mask", "count": 1 }
+  ],
+  "licenceDisposition": "permitted",
+  "policyVersion": 3,
+  "classifiedAt": "2026-08-20T09:05:00Z",
+  "classifiedBy": "classifier-svc@1.4.0"
+}

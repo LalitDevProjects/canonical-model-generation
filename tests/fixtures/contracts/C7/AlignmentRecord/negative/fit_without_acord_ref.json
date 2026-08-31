@@ -1,0 +1,8 @@
+{
+  "clusterId": "cluster://claim-date",
+  "acordRef": null,
+  "verdict": "fit",
+  "deviation": null,
+  "rationale": "Claims a direct match but cites no ACORD reference - the anti-hallucination guardrail this fixture is designed to trip.",
+  "evidenceRefs": ["evref://us/git/art-claims-openapi-us@042896dc1966b8a6#/claimDate"]
+}

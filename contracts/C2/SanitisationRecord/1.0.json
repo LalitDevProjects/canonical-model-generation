@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C2/SanitisationRecord/1.0.json",
+  "title": "C2 SanitisationRecord",
+  "description": "INTERPRETED, NOT VERBATIM SPEC: no JSON Schema or exhaustive field list for this contract exists anywhere in TECHNICAL_SPECIFICATION.txt. This schema is synthesized from Section 5 prose (classification ladder L0-L5, detector specification, policy decision point, DPO override path). Treat as a draft to be revised once Increment 4 (the sanitisation gate) is actually implemented and exercises these fields for real.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artefactId", "contentHash", "labels", "verdict",
+    "licenceDisposition", "policyVersion", "classifiedAt"
+  ],
+  "properties": {
+    "artefactId": { "type": "string" },
+    "contentHash": { "$ref": "../../common/defs.json#/$defs/sha256Hex" },
+    "labels": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "../../common/defs.json#/$defs/sanitisationLabel" }
+    },
+    "verdict": { "$ref": "../../common/defs.json#/$defs/sanitisationVerdict" },
+    "detectorHits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rung", "detector", "count"],
+        "properties": {
+          "rung": { "type": "string", "enum": ["L0", "L1", "L2", "L3", "L4", "L5"] },
+          "detector": { "type": "string" },
+          "count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "licenceDisposition": {
+      "type": "string",
+      "enum": ["permitted", "prohibited", "unknown"]
+    },
+    "policyVersion": { "type": "integer", "minimum": 1 },
+    "classifiedAt": { "$ref": "../../common/defs.json#/$defs/dateTime" },
+    "classifiedBy": { "type": "string" },
+    "overrideApproval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approverRole", "justification", "expiresAt"],
+      "properties": {
+        "approverRole": { "type": "string" },
+        "justification": { "type": "string" },
+        "expiresAt": { "$ref": "../../common/defs.json#/$defs/dateTime" }
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canonicalmodel.internal/contracts/C9/CoverageReport/1.0.json",
+  "title": "C9 CoverageReport",
+  "description": "Transcribed from the coverage() function body (Section 9.8). The spec states a coverage figure published without its denominator and exclusion register is not a valid report under this specification - denominator and exclusions are therefore both required, not optional.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain", "score", "denominator", "weightSum", "perRegion",
+    "gate1Pass", "gate2Pass", "gate3Pass", "specifiedVsInferred", "exclusions"
+  ],
+  "properties": {
+    "domain": { "type": "string" },
+    "score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "denominator": { "type": "integer", "minimum": 0 },
+    "weightSum": { "type": "number", "minimum": 0 },
+    "perRegion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["us", "uk", "eu"],
+      "properties": {
+        "us": { "type": "number", "minimum": 0, "maximum": 1 },
+        "uk": { "type": "number", "minimum": 0, "maximum": 1 },
+        "eu": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "gate1Pass": { "type": "boolean", "description": "No weight-5 (regulatory) concept unresolved." },
+    "gate2Pass": { "type": "boolean", "description": "score >= 0.90 domain target AND all per-region scores >= 0.85 floor." },
+    "gate3Pass": { "type": "boolean", "description": "No unevidenced concept contributes to the score." },
+    "specifiedVsInferred": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["specified", "inferred"],
+      "properties": {
+        "specified": { "type": "integer", "minimum": 0 },
+        "inferred": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": { "$ref": "../../common/defs.json#/$defs/exclusionEntry" }
+    }
+  }
+}
