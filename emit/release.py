@@ -18,6 +18,7 @@ import hashlib
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,7 @@ class ReleaseManifest:
     artefacts: list[ArtefactEntry]
     coverage: dict[str, Any]
     conformance: dict[str, Any]
+    signed_at: str
     decisions: list[dict[str, Any]] = field(default_factory=list)
     approvers: list[dict[str, Any]] = field(default_factory=list)
     signature: str = ""
@@ -57,6 +59,7 @@ class ReleaseManifest:
             "artefacts": [{"path": a.path, "sha256": a.sha256} for a in self.artefacts],
             "coverage": self.coverage,
             "conformance": self.conformance,
+            "signedAt": self.signed_at,
             "decisions": self.decisions,
             "approvers": self.approvers,
             "signature": self.signature,
@@ -80,13 +83,17 @@ def build_release_manifest(
     gate2: bool,
     gate3: bool,
     acord_conformance: float,
+    signed_at: str | None = None,
     decisions: list[dict[str, Any]] | None = None,
     approvers: list[dict[str, Any]] | None = None,
     signature: str = "",
 ) -> ReleaseManifest:
     """`artefacts` is (relative_path, content_bytes) pairs - the caller
     already has the serialised bytes in hand (emit/schema.py::serialise
-    et al.), so hashing here never re-reads from disk."""
+    et al.), so hashing here never re-reads from disk. `signed_at`
+    defaults to now (UTC, ISO 8601) - Section 12.3's own GET .../releases
+    response shape names this field even though Section 11.4's worked
+    example never included it (see the schema's own description)."""
     return ReleaseManifest(
         domain=domain,
         version=version,
@@ -96,6 +103,7 @@ def build_release_manifest(
         artefacts=[ArtefactEntry(path=path, sha256=_sha256_of(content)) for path, content in artefacts],
         coverage={"score": coverage_score, "gate1": gate1, "gate2": gate2, "gate3": gate3},
         conformance={"acord": acord_conformance},
+        signed_at=signed_at or datetime.now(timezone.utc).isoformat(),
         decisions=decisions or [],
         approvers=approvers or [],
         signature=signature,

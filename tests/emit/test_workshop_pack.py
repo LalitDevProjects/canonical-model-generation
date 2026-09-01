@@ -39,7 +39,7 @@ def _release_manifest() -> object:
     return build_release_manifest(
         domain="claims", version="1.0.0", run_id="b0f2e7c4-9a11-4d2e-8f30-6c5b7d1e2a44", corpus_hash="sha256:abc",
         pins={}, artefacts=[], coverage_score=0.95, gate1=True, gate2=True, gate3=True, acord_conformance=0.0,
-        signature="sig:placeholder",
+        signed_at="2026-09-30T14:05:00+00:00", signature="sig:placeholder",
     )
 
 

@@ -233,6 +233,22 @@ class MappingConfig(BaseModel):
     critical_weight: int = Field(default=5, gt=0)
 
 
+class ApiConfig(BaseModel):
+    """Section 12.1's own conventions ('REST over HTTPS with mTLS between
+    components; OAuth 2.0 client credentials for human-facing clients')
+    describe real transport/identity infrastructure this PoC has no way
+    to stand up as pure application code. bearer_token is a structural
+    stand-in only - the same PoC-placeholder-credential status
+    EgressConfig.ledger_signing_key already carries for its own key
+    material, NOT a substitute for real mTLS/OAuth2."""
+
+    bearer_token: str = Field(
+        description="PoC placeholder credential checked by api/auth.py's "
+        "require_bearer_token dependency. A single static token, not a "
+        "real OAuth2 client-credentials flow."
+    )
+
+
 def _require_hex64(value: str, field_label: str) -> None:
     if not re.fullmatch(r"[0-9a-f]{64}", value):
         raise ValueError(f"{field_label} must be exactly 64 lowercase hex characters (32 bytes)")
@@ -335,6 +351,7 @@ class PlatformSettings(BaseSettings):
     clustering: ClusteringConfig = Field(default_factory=ClusteringConfig)
     coverage: CoverageConfig = Field(default_factory=CoverageConfig)
     mapping: MappingConfig = Field(default_factory=MappingConfig)
+    api: ApiConfig
 
 
 def load_settings(yaml_path: Path | None = None) -> PlatformSettings:

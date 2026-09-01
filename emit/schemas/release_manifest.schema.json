@@ -7,13 +7,18 @@
   "additionalProperties": false,
   "required": [
     "domain", "version", "runId", "corpusHash", "pins", "artefacts",
-    "coverage", "conformance", "decisions", "approvers", "signature"
+    "coverage", "conformance", "decisions", "approvers", "signature", "signedAt"
   ],
   "properties": {
     "domain": { "type": "string" },
     "version": { "type": "string" },
     "runId": { "type": "string", "format": "uuid" },
     "corpusHash": { "type": "string" },
+    "signedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Section 12.3's own GET /v1/registry/{domain}/releases response shape ({semver, signedAt, coverage, conformance}) names this field; Section 11.4's worked example never included it - a genuine gap discovered wiring the registry API against this schema, closed here the same way I4/I6/I7/I8/I9 closed their own contract gaps."
+    },
     "pins": { "type": "object" },
     "artefacts": {
       "type": "array",

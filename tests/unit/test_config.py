@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from config.settings import (
+    ApiConfig,
     ClusteringConfig,
     CoverageConfig,
     EgressConfig,
@@ -152,6 +153,16 @@ def test_mapping_config_defaults_when_omitted() -> None:
     assert cfg.critical_weight == 5
 
 
+def test_api_config_loads_from_platform_yaml() -> None:
+    settings = load_settings()
+    assert settings.api.bearer_token
+
+
+def test_api_config_bearer_token_is_required() -> None:
+    with pytest.raises(ValidationError, match="bearer_token"):
+        ApiConfig.model_validate({})
+
+
 def _valid_egress_payload(**overrides: object) -> dict[str, object]:
     payload: dict[str, object] = {
         "policy_version": 3,
@@ -176,6 +187,7 @@ def _valid_settings_payload() -> dict[str, object]:
         "egress": _valid_egress_payload(),
         "feature_flags": {},
         "relevance": {"pass1_keep": 0.65, "pass1_drop": 0.20, "domain_tokens": {}},
+        "api": {"bearer_token": "test-bearer-token"},
     }
 
 

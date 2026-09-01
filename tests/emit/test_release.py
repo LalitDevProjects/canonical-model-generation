@@ -29,6 +29,16 @@ def test_schema_is_a_valid_meta_schema() -> None:
     Draft202012Validator.check_schema(RELEASE_MANIFEST_SCHEMA)
 
 
+def test_signed_at_defaults_to_a_real_timestamp() -> None:
+    d = _build()
+    assert isinstance(d["signedAt"], str) and d["signedAt"]
+
+
+def test_signed_at_override_is_used_verbatim() -> None:
+    d = _build(signed_at="2026-09-30T14:05:00+00:00")
+    assert d["signedAt"] == "2026-09-30T14:05:00+00:00"
+
+
 def test_artefact_hash_is_real_sha256_of_content() -> None:
     d = _build()
     expected = hashlib.sha256(b'{"a":1}').hexdigest()

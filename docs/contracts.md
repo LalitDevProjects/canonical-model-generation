@@ -141,13 +141,18 @@ schema independently of the graph write path itself.
   scope; see `docs/increments.md`'s I9 completion-boundary note).
 - The `ReleaseManifest` artefact (Section 11.4's worked example - `domain`/
   `version`/`runId`/`corpusHash`/`pins`/`artefacts`/`coverage`/
-  `conformance`/`decisions`/`approvers`/`signature`) is **not** a 12th
-  C-numbered contract - Appendix A's own contract index closes the list at
-  C11, and `C11.RunManifest` is a genuinely different *run* record
+  `conformance`/`decisions`/`approvers`/`signature`/`signedAt`) is **not** a
+  12th C-numbered contract - Appendix A's own contract index closes the
+  list at C11, and `C11.RunManifest` is a genuinely different *run* record
   (trigger/budget/state), not this *release* record. Built at Increment 9
   as a hand-written schema under `emit/schemas/release_manifest.schema.json`
   instead, the same "real artefact, not a C-contract" status as Section
   6.3's `Release` graph-node type (`substrate/graph.py::ReleaseProps`,
   Increment 5) - that node's three fields (`domain`/`semver`/`signedAt`)
-  are the graph-lineage projection of this fuller emitted document, not a
-  separate design.
+  are the graph-lineage projection of this fuller emitted document. `signedAt`
+  itself was genuinely missing from the schema until the Section 12 work
+  (below): Section 11.4's own worked example never included it, but
+  Section 12.3's `GET /v1/registry/{domain}/releases` response shape
+  (`{semver, signedAt, coverage, conformance}`) names it, and
+  `ReleaseProps` had already anticipated it since Increment 5 - a real,
+  now-closed gap between the two, not a separate design.

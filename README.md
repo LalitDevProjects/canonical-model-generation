@@ -80,8 +80,22 @@ a real compiler enforcing T1-T4 plus a builder-added D1, a reference
 interpreter with a real `reverse()` the spec itself never shows), Mapping
 Generator (the twelfth and final agent), and `emit/`'s real, validating
 JSON Schema/OpenAPI/logical-model/release-manifest emitters, assembled
-into a concrete workshop pack an SME can run a real session from. See
-`docs/contracts.md` and `docs/increments.md` for the full
+into a concrete workshop pack an SME can run a real session from.
+
+**Beyond the nine-increment guide**: Section 12's Internal Service APIs
+(run control, registry, workshop/decisions) are now real - a FastAPI
+application (`api/`) over a real, hermetic driving orchestrator
+(`pipeline/orchestrator.py`) that walks a run through corpus assembly,
+parsing and deterministic clustering with zero live Postgres or Anthropic
+key required, sealing a real TRIAGE checkpoint, then continuing into
+ACORD Aligner and Canonical Synthesiser only when a real model provider
+is actually configured - never faking a decision when one isn't. See
+`api/README.md`, `pipeline/README.md`, and `docs/increments.md`'s own
+dated entry for the full record, including two real bugs found and fixed
+while wiring it (a connector-collision bug in corpus assembly, and a
+previously-unwired `RunManifest.budget`).
+
+See `docs/contracts.md` and `docs/increments.md` for the full
 per-increment record.
 
 A previous implementation (`archive/legacy_src/`) diverged from the spec in
@@ -111,11 +125,11 @@ canonical-model-generation/
   parsers/               OpenAPI/WSDL/XSD/Avro parsers, type normalisation (Increment 3 - built; code_inference.py deferred)
   gate/                  Sanitisation ladder, tokenisation, egress ledger (Increment 4 - built)
   substrate/             Chunking, embeddings, vector + concept graph, substrate-api (Increment 5 - built, real Postgres + pgvector)
-  pipeline/               Orchestration: run store persistence, journal, triage export (Increments 2-7 - built), state machine (out of PoC scope - see docs/increments.md)
+  pipeline/               Orchestration: run store persistence (extended), journal, triage export, a real hermetic driving orchestrator, registry/workshop stores (Increments 2-7 + Section 12 work - built)
   algorithms/            Attribute profiling (I3); blocking, similarity, graph, conflict classification, clustering (I7, zero LLM dependency); naming, placement, coverage + gap register (I8 - built)
   mapping/               Mapping DSL: grammar, 14-entry transform library, compiler (T1-T4+D1), reference interpreter, round-trip test generation (Increment 9 - built)
   emit/                   Entity/extension/common JSON Schema emitters, OpenAPI projection, JSON-LD logical model export, release manifest, workshop pack assembly (Increment 9 - built)
-  api/                    Internal service APIs (run control, registry, workshop) (Increment 12)
+  api/                    Section 12 Internal Service APIs: run control, registry, workshop/decisions - a real FastAPI app over the orchestrator (built beyond the 9-increment guide)
   golden/                Golden corpus, built incrementally (Increments 2-9 - see golden/README.md)
   eval/                  Agent evaluation harness: thresholds, worst-of-5 gating (Increment 7 - built, for Semantic Resolver)
   infra/                 docker-compose.yml (local Postgres + pgvector, Increment 5)
@@ -123,6 +137,7 @@ canonical-model-generation/
   tests/
     agents/                Agent ABC, model gateway, prompt render, validation ladder, Repository Scout, Schema Interpreter, Semantic Resolver, ACORD Aligner, Canonical Synthesiser, Mapping Generator, I6/I7/I8/I9 acceptance tests
     algorithms/            Profiling, blocking, similarity, conflict, clustering, naming, placement, coverage tests, I7/I8 acceptance tests
+    api/                    Run-control/registry/workshop routers, errors, auth, pagination, idempotency, export - real TestClient tests over the real orchestrator (65 tests, ~99% coverage)
     connectors/            Connector, relevance-filter, manifest, and golden-corpus e2e tests
     contracts/            Schema + generated-model fixture and invariant tests
     emit/                   Schema/OpenAPI/logical-model/release-manifest/workshop-pack tests, I9 acceptance test
@@ -130,10 +145,10 @@ canonical-model-generation/
     fixtures/              Per-contract positive/negative fixtures, invariant bundles
     gate/                  Detectors, tokenisation, policy, ledger, Increment 4 acceptance tests
     mapping/               Transform library, parser, compiler, interpreter, round-trip generation tests
+    pipeline/              Run-store (+ extensions), registry-store, workshop-store, and hermetic orchestrator tests (S1->TRIAGE + scripted-provider full continuation)
     substrate/             Chunking, embedding, graph, search, ingest, api, Increment 5 acceptance tests (mostly pytest.mark.db)
     tools/                 Tool gateway authorisation/schema/journalling tests
     parsers/               Parser, type-normalisation, and router tests
-    pipeline/              Run-store tests (incl. triage export)
     unit/                  Unit tests (validators, config)
   archive/legacy_src/      Pre-rebuild implementation, retained for reference/cherry-picking
   .github/workflows/       CI
@@ -191,6 +206,49 @@ git add contracts/ generated/
 CI fails the build if `generated/` doesn't match what
 `scripts/generate_models.py` produces from the committed `contracts/`.
 
+### Running the API
+
+Section 12's Internal Service APIs (`api/`) are a real FastAPI
+application over a real, hermetic driving orchestrator. Only the
+`claims` domain is wired to real golden-corpus data.
+
+```bash
+uvicorn api.app:create_app --factory --reload
+```
+
+This starts the server with real stores at the repo root, real
+`config/platform.yaml` settings, and real bearer-token enforcement
+(`config/platform.yaml`'s own `api.bearer_token` placeholder - see
+`api/README.md` for why this stands in for Section 12.1's real
+mTLS/OAuth2 model, not a substitute for it). A worked request sequence:
+
+```bash
+# 1. Create a run - synchronously drives corpus assembly, parsing and
+#    deterministic clustering, then seals a TRIAGE checkpoint. No
+#    Postgres or Anthropic key required for this step.
+curl -s -X POST http://localhost:8000/v1/runs \
+  -H "Authorization: Bearer poc-placeholder-bearer-token-not-for-production-use" \
+  -H "Content-Type: application/json" \
+  -d '{"domain":"claims","trigger":{"kind":"manual","requestedBy":"you","at":"2026-09-01T12:00:00Z"}}'
+# -> {"runId": "...", "state": "AWAIT_TRIAGE"}
+
+# 2. Inspect the sealed checkpoint's real review-band items
+curl -s http://localhost:8000/v1/runs/{runId}/checkpoints/TRIAGE \
+  -H "Authorization: Bearer poc-placeholder-bearer-token-not-for-production-use"
+
+# 3. Submit decisions with complete:true to resume. Without
+#    ANTHROPIC_API_KEY set, the run stops at AWAIT_MODEL_PROVIDER,
+#    honestly labelled rather than faking a continuation.
+curl -s -X POST http://localhost:8000/v1/runs/{runId}/checkpoints/TRIAGE/decisions \
+  -H "Authorization: Bearer poc-placeholder-bearer-token-not-for-production-use" \
+  -H "Content-Type: application/json" \
+  -d '{"decisions":[{"itemId":"x","outcome":"accept","rationale":"r","decidedBy":"you"}],"complete":true}'
+```
+
+See `api/README.md` for the full route list, the RFC 9457 error model,
+and what's honestly still a PoC-scope placeholder (auth, idempotency,
+cursor tokens) versus real, tested logic.
+
 ### Running Tests
 
 ```bash
@@ -198,7 +256,7 @@ CI fails the build if `generated/` doesn't match what
 pytest
 
 # Run with coverage report (fails under 85%, per pyproject.toml)
-pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov=eval --cov=mapping --cov=emit --cov-report=term-missing
+pytest --cov=generated --cov=contracts --cov=config --cov=connectors --cov=pipeline --cov=parsers --cov=algorithms --cov=gate --cov=substrate --cov=agents --cov=tools --cov=eval --cov=mapping --cov=emit --cov=api --cov-report=term-missing
 
 # Run just the contract/fixture tests
 pytest tests/contracts/
@@ -237,6 +295,11 @@ pytest tests/emit/test_i9_acceptance.py
 # Run the mapping DSL / compiler / interpreter / round-trip generator tests
 pytest tests/mapping/
 
+# Run the Section 12 API tests (real FastAPI TestClient over the real
+# orchestrator) and the orchestrator's own hermetic S1->TRIAGE test -
+# zero LLM, zero DB (built beyond the 9-increment guide)
+pytest tests/api/ tests/pipeline/test_orchestrator.py
+
 # Run the tests requiring a real Anthropic API call (skip cleanly without ANTHROPIC_API_KEY)
 pytest -m llm
 ```
@@ -244,9 +307,9 @@ pytest -m llm
 ### Development
 
 ```bash
-mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools eval mapping emit tests
-black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ mapping/ emit/ tests/ scripts/
-isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ mapping/ emit/ tests/ scripts/
+mypy --strict generated contracts config connectors pipeline parsers algorithms gate substrate agents tools eval mapping emit api tests
+black contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ mapping/ emit/ api/ tests/ scripts/
+isort contracts/ config/ connectors/ pipeline/ parsers/ algorithms/ gate/ substrate/ agents/ tools/ eval/ mapping/ emit/ api/ tests/ scripts/
 ```
 
 ## Configuration
@@ -268,6 +331,11 @@ Key configuration areas:
   `critic.secondary_provider`, `gate.dpo_override.enabled`,
   `emission.strict_determinism`)
 - Egress fail-mode (hard-locked to `closed`)
+- `api.bearer_token` - a static, committed PoC placeholder credential
+  Section 12's HTTP layer checks on every request (`api/auth.py`), the
+  same non-production status `egress.ledger_signing_key` already
+  carries; not a substitute for Section 12.1's own real mTLS/OAuth2
+  model.
 
 ## Architecture Highlights
 
@@ -435,5 +503,5 @@ See `CONTRIBUTING.md` for development guidelines.
 
 ---
 
-**Status**: Draft for Technical Review (v0.1) - Increments 1-9 of 9 (PoC Build Guide, Section 17) complete. Honestly out of scope even so: Section 12's run-control/registry/workshop HTTP service APIs, the S1-S8 orchestrator state machine, and ACORD Reference Architecture content (unlicensed since Increment 1) - see `docs/increments.md`'s Increment 9 section for the full completion-boundary note.
+**Status**: Draft for Technical Review (v0.1) - Increments 1-9 of 9 (PoC Build Guide, Section 17) complete, **plus** Section 12's Internal Service APIs and a real, bounded driving orchestrator, built beyond the 9-increment guide at explicit request. Honestly still out of scope: real mTLS/OAuth2/workload identity (Section 13) and observability (Section 14) - both stood in by documented PoC placeholders where the HTTP layer needs them; Semantic Resolver's review-band adjudication and mapping generation as part of the orchestrator's own automatic continuation (both real and existing, just not wired into it - see `docs/increments.md`); RATIFY/ARB checkpoint sealing; a closed `RunManifest.state` enum; ACORD Reference Architecture content (unlicensed since Increment 1). See `docs/increments.md`'s own dated Section 12 entry for the full record.
 **Last Updated**: 1 September 2026

@@ -12,19 +12,38 @@ labelled as C11 RunManifest, but gives no path for C4 CorpusManifest itself.
 This writes C4 at `run-store/{runId}/S1/corpus_manifest.json` - distinct
 from C11's own manifest.json - following the per-stage-folder convention
 (`run-store/{runId}/S1..S8/`) implied elsewhere in the storage layout.
+
+Extended for Section 12's run-control API and pipeline/orchestrator.py:
+`write_run_manifest`/`read_run_manifest`/`update_run_state`/`list_runs`
+(C11 RunManifest itself was never persisted before, despite this module's
+own docstring naming its path since Increment 2), `read_journal_events`
+(no read-back for the journal existed before - only append + count),
+`write_clusters`/`read_clusters` and `write_candidates`/`read_candidates`
+(neither ConceptCluster nor CanonicalCandidate was persisted anywhere
+before), and generalised checkpoint sealing/decision recording
+(`seal_checkpoint`/`read_sealed_checkpoint`/`write_checkpoint_decisions`/
+`read_checkpoint_decisions`/`checkpoint_decisions_complete`), covering
+TRIAGE/RATIFY/ARB uniformly - `TriageEntry`'s own `S4/triage.jsonl` stays
+exactly as it was for I7's own clustering review queue; checkpoint sealing
+is a separate, generic mechanism the orchestrator layers on top of it.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
 from generated.C4.CorpusManifest._1_0 import C4Corpusmanifest
 from generated.C5.AttributeRecord._1_0 import C5Attributerecord
+from generated.C6.ConceptCluster._1_0 import C6Conceptcluster
+from generated.C8.CanonicalCandidate._1_0 import C8Canonicalcandidate
 from generated.C11.JournalEvent._1_0 import C11Journalevent
+from generated.C11.RunManifest._1_0 import C11Runmanifest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -168,3 +187,169 @@ class RunStore:
         if not path.exists():
             return 0
         return len(path.read_text(encoding="utf-8").splitlines())
+
+    def _atomic_write_json(self, path: Path, data: object) -> None:
+        """Unlike write_corpus_manifest/write_attributes (write-once,
+        never re-read while being written), manifest.json and sealed
+        checkpoints are re-read repeatedly by a live API server while a
+        run is in flight - write to a sibling .tmp file and os.replace
+        so a reader never observes a partially-written file."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = path.with_suffix(path.suffix + ".tmp")
+        tmp_path.write_text(json.dumps(data, sort_keys=True, indent=2) + "\n", encoding="utf-8")
+        os.replace(tmp_path, path)
+
+    def write_run_manifest(self, run_id: UUID, manifest: C11Runmanifest) -> Path:
+        destination = self.run_dir(run_id) / "manifest.json"
+        self._atomic_write_json(destination, manifest.model_dump(mode="json"))
+        return destination
+
+    def read_run_manifest(self, run_id: UUID) -> C11Runmanifest:
+        path = self.run_dir(run_id) / "manifest.json"
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        return C11Runmanifest.model_validate(raw)
+
+    def update_run_state(self, run_id: UUID, state: str) -> C11Runmanifest:
+        updated = self.read_run_manifest(run_id).model_copy(update={"state": state})
+        self.write_run_manifest(run_id, updated)
+        return updated
+
+    def list_runs(self, *, domain: str | None = None) -> list[C11Runmanifest]:
+        """Every run with a persisted manifest.json, optionally filtered
+        by domain - the run-control API's own source for the 409
+        run-conflict check ("an active run already exists for this
+        domain")."""
+        if not self._base_path.exists():
+            return []
+        manifests: list[C11Runmanifest] = []
+        for entry in sorted(self._base_path.iterdir()):
+            manifest_path = entry / "manifest.json"
+            if not manifest_path.exists():
+                continue
+            manifest = C11Runmanifest.model_validate(json.loads(manifest_path.read_text(encoding="utf-8")))
+            if domain is not None and manifest.domain != domain:
+                continue
+            manifests.append(manifest)
+        return manifests
+
+    def read_journal_events(
+        self, run_id: UUID, *, from_seq: int = 0, limit: int | None = None
+    ) -> list[C11Journalevent]:
+        path = self.run_dir(run_id) / "journal.jsonl"
+        if not path.exists():
+            return []
+        events: list[C11Journalevent] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line:
+                continue
+            raw = json.loads(line)
+            if raw.get("seq", 0) < from_seq:
+                continue
+            events.append(C11Journalevent.model_validate(raw))
+            if limit is not None and len(events) >= limit:
+                break
+        return events
+
+    def write_clusters(self, run_id: UUID, clusters: list[C6Conceptcluster]) -> Path:
+        """`run-store/{runId}/S4/clusters.jsonl` - S4's sibling deliverable
+        to the existing triage.jsonl (which carries only the review-band
+        material, not the confidently-linked clusters run_clustering
+        also produces)."""
+        stage_dir = self.run_dir(run_id) / "S4"
+        stage_dir.mkdir(parents=True, exist_ok=True)
+        destination = stage_dir / "clusters.jsonl"
+        lines = (json.dumps(c.model_dump(mode="json"), sort_keys=True) for c in clusters)
+        destination.write_text("\n".join(lines) + ("\n" if clusters else ""), encoding="utf-8")
+        return destination
+
+    def read_clusters(self, run_id: UUID) -> list[C6Conceptcluster]:
+        path = self.run_dir(run_id) / "S4" / "clusters.jsonl"
+        if not path.exists():
+            return []
+        return [
+            C6Conceptcluster.model_validate(json.loads(line))
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+
+    def write_candidates(self, run_id: UUID, candidates: list[C8Canonicalcandidate]) -> Path:
+        """`run-store/{runId}/S6/candidates.jsonl` - Canonical
+        Synthesiser's stage."""
+        stage_dir = self.run_dir(run_id) / "S6"
+        stage_dir.mkdir(parents=True, exist_ok=True)
+        destination = stage_dir / "candidates.jsonl"
+        lines = (json.dumps(c.model_dump(mode="json"), sort_keys=True) for c in candidates)
+        destination.write_text("\n".join(lines) + ("\n" if candidates else ""), encoding="utf-8")
+        return destination
+
+    def read_candidates(self, run_id: UUID) -> list[C8Canonicalcandidate]:
+        path = self.run_dir(run_id) / "S6" / "candidates.jsonl"
+        if not path.exists():
+            return []
+        return [
+            C8Canonicalcandidate.model_validate(json.loads(line))
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line
+        ]
+
+    def seal_checkpoint(
+        self, run_id: UUID, checkpoint: str, *, items: list[dict[str, Any]], corpus_hash: str
+    ) -> Path:
+        """`run-store/{runId}/checkpoints/{checkpoint}/sealed.json`.
+        `corpusHashAtSeal` is the 409 corpus-drift check's own source of
+        truth: the run-control API compares it against the run's
+        *current* RunManifest.corpusHash at decision-submit time."""
+        destination = self.run_dir(run_id) / "checkpoints" / checkpoint / "sealed.json"
+        payload = {
+            "checkpoint": checkpoint,
+            "sealedAt": datetime.now(timezone.utc).isoformat(),
+            "payloadRef": f"run-store://{run_id}/checkpoints/{checkpoint}/sealed.json",
+            "items": items,
+            "corpusHashAtSeal": corpus_hash,
+        }
+        self._atomic_write_json(destination, payload)
+        return destination
+
+    def read_sealed_checkpoint(self, run_id: UUID, checkpoint: str) -> dict[str, Any] | None:
+        path = self.run_dir(run_id) / "checkpoints" / checkpoint / "sealed.json"
+        if not path.exists():
+            return None
+        result: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
+        return result
+
+    def write_checkpoint_decisions(
+        self, run_id: UUID, checkpoint: str, decisions: list[dict[str, Any]], *, complete: bool
+    ) -> Path:
+        """`run-store/{runId}/checkpoints/{checkpoint}/decisions.jsonl` -
+        append-only, one line per POST .../decisions submission batch
+        ("Decisions are captured against the candidate at the moment
+        they are made", Section 12.4). `complete` reflects the *last*
+        submitted batch - the run resumes once a batch sets it true."""
+        destination = self.run_dir(run_id) / "checkpoints" / checkpoint / "decisions.jsonl"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        batch = {
+            "decisions": decisions,
+            "complete": complete,
+            "submittedAt": datetime.now(timezone.utc).isoformat(),
+        }
+        with destination.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(batch, sort_keys=True) + "\n")
+        return destination
+
+    def read_checkpoint_decisions(self, run_id: UUID, checkpoint: str) -> list[dict[str, Any]]:
+        """Every decision across every submitted batch, flattened."""
+        path = self.run_dir(run_id) / "checkpoints" / checkpoint / "decisions.jsonl"
+        if not path.exists():
+            return []
+        decisions: list[dict[str, Any]] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line:
+                decisions.extend(json.loads(line)["decisions"])
+        return decisions
+
+    def checkpoint_decisions_complete(self, run_id: UUID, checkpoint: str) -> bool:
+        path = self.run_dir(run_id) / "checkpoints" / checkpoint / "decisions.jsonl"
+        if not path.exists():
+            return False
+        lines = path.read_text(encoding="utf-8").splitlines()
+        return bool(lines) and bool(json.loads(lines[-1]).get("complete"))

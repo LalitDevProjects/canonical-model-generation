@@ -129,6 +129,13 @@ mapping:
   round_trip_n: 24
   critical_weight: 5
 
+# Section 12.1's own REST/mTLS/OAuth2 conventions, built beyond the
+# 9-increment PoC guide. bearer_token is a committed PoC placeholder
+# credential (same status as egress.ledger_signing_key above), NOT
+# production key material - see ApiConfig's own docstring.
+api:
+  bearer_token: "poc-placeholder-bearer-token-not-for-production-use"
+
 # Dotted spelling matches the spec's own Section 15.3 flag names; translated
 # to snake_case by FeatureFlags.from_dotted (config/settings.py) before
 # PlatformSettings is constructed.

@@ -910,20 +910,127 @@ under-specified agents from scratch.
   one schema per entity, a passing mapping spec, the real coverage
   report/gap register, the release manifest, and the ACORD manual-
   completion section.
-- **Honestly out of scope, even after this final increment**: Section
-  12's run-control/registry/workshop HTTP service APIs
-  (`api/README.md`'s own Increment 12 deferral, unchanged since
-  Increment 1 - I9 produces the file artefacts those services would
-  eventually serve, never the services themselves); the S1-S8
-  orchestrator state machine (`agents/base.py::route()` remains the
-  identity stub it has been since Increment 6 - no increment's
-  acceptance test through I9 ever required a real one); ACORD Reference
+- **Out of scope as of this final increment (later reversed - see the
+  Section 12 + orchestrator entry below)**: Section 12's run-control/
+  registry/workshop HTTP service APIs and the S1-S8 orchestrator state
+  machine were both still unbuilt at I9's own completion. ACORD Reference
   Architecture content (permanently unlicensed since Increment 1); a
   live re-proof of the recursive-CTE lineage query (proven once, for
   real, at Increment 5 via `pytest.mark.db` - I9's logical-model export
   only has to produce documents *consistent with* what that query would
-  return); `RunManifest.state` as a closed enum (still an open string -
-  no orchestrator state machine was ever built to enumerate against).
+  return); `RunManifest.state` as a closed enum (still an open string)
+  remain true as of this entry.
+
+## Section 12 Internal Service APIs + hermetic driving orchestrator (2026-09-01, beyond the 9-increment guide)
+
+Built at the user's own explicit request, after the 9-increment guide's
+own completion - not "Increment 10." Two things I9's own "out of scope"
+note above named are no longer true: Section 12's HTTP APIs are real, and
+a real (if deliberately bounded) orchestrator now drives runs through
+them.
+
+- **The orchestrator's own hermetic boundary**: `pipeline/orchestrator.py::
+  create_run()` drives a run synchronously through S1 (real `GitConnector`
+  instances over `golden/git/claims-{us,uk,eu}/`, sealed via
+  `connectors.manifest.assemble_corpus_manifest` - the same real path
+  `tests/connectors/test_golden_corpus_e2e.py` already proves), S3 (real
+  `parsers.router.parse` + `algorithms.profiling.profile` per artefact),
+  S4 (real `algorithms.clustering.run_clustering`, "zero LLM dependency"
+  by its own Increment 7 design), then seals a real TRIAGE checkpoint and
+  stops - zero live Postgres, zero live Anthropic key required for any of
+  it. This boundary is not arbitrary: it is exactly where this repo's own
+  existing code already drew the deterministic/probabilistic line.
+  `resume_after_checkpoint()` continues into ACORD Aligner (degrades
+  automatically) and Canonical Synthesiser only when a real model
+  provider is actually configured; otherwise the run stops at a real,
+  honestly-labelled `AWAIT_MODEL_PROVIDER` state, never faking a decision.
+- **A real bug fixed empirically, not assumed**: `connectors.manifest.
+  assemble_corpus_manifest`'s own `connectors_by_system` dict is keyed by
+  `Connector.system` alone - every `GitConnector` reports `system="git"`
+  regardless of the region it was constructed with, so passing three
+  region-tagged connectors as one combined `sources` list makes the last
+  one silently shadow the other two for every `fetch()` call. Discovered
+  by the orchestrator's own S1 step actually failing with a real git
+  error the first time it ran end to end. Fixed by issuing three
+  independent `assemble_corpus_manifest` calls (one connector each, no
+  collision) and merging the results into one `C4Corpusmanifest`
+  afterward, with `corpusHash` recomputed for real over the combined
+  artefact set.
+- **A second real discovery**: `agents/semantic_resolver.py`'s own
+  `assemble_context()` calls `SubstrateApi.search()` (hybrid BM25+vector
+  retrieval), which genuinely needs a live `SubstrateDb` connection -
+  unlike ACORD Aligner's `acord_lookup()` and Canonical Synthesiser's
+  `get_attribute()`, neither of which ever touches the database. Semantic
+  Resolver's own review-band adjudication is therefore deliberately NOT
+  part of the automatic continuation (gating the whole continuation on
+  "a live Postgres, if the review band happens to be non-empty" would
+  contradict the model-provider-only gating design) - review-band
+  material stays exactly where `create_run()` sealed it, for a caller
+  with real DB access to resolve separately via the existing
+  `agents.semantic_resolver.make_semantic_resolver_adjudicator` factory.
+- **A genuine, previously-unwired gap closed in passing**: `RunManifest.
+  budget` (populated from a real `POST /v1/runs` request body) was never
+  actually consumed anywhere - the orchestrator's own `RunContext` used a
+  hardcoded budget. Fixed to build `agents.model_gateway.Budget.
+  from_contract(manifest.budget)` - a factory method that existed for
+  exactly this purpose but had never been called anywhere in this repo
+  until now.
+- **`emit/release.py`'s `ReleaseManifest` gained a `signed_at` field** -
+  Section 12.3's own `GET /v1/registry/{domain}/releases` response shape
+  (`{semver, signedAt, coverage, conformance}`) names it, but Section
+  11.4's worked example (which `emit/schemas/release_manifest.schema.json`
+  was built from at Increment 9) never included it - a genuine contract
+  gap discovered wiring the registry API against that schema, closed the
+  same way I4/I6/I7/I8/I9 closed their own.
+- **A guardrail-violation robustness gap fixed in the orchestrator's own
+  synthesis loop**: `agents.canonical_synthesiser.make_canonical_
+  synthesiser_factory`'s own `_synthesise()` catches `WorkItemFailed` but
+  not `GuardrailViolation` (zero retries by design, Section 7.6). One
+  cluster's own naming/tracing violation - discovered for real: the
+  golden corpus's own "status" cluster trips `algorithms/naming.py`'s
+  documented, intentionally trigger-happy region-marker check ("us"
+  matches inside "status") - must not abort synthesis for every other
+  cluster in the run. `resume_after_checkpoint()` now catches it per
+  cluster, journals the rejection, and continues.
+- `api/` (new top-level package): a real FastAPI application
+  (`create_app()`) implementing all of Section 12.2 (run control), 12.3
+  (registry), and 12.4 (workshop/decisions) as real HTTP routes over
+  real, already-tested functions - no business logic reimplemented in
+  the HTTP layer. RFC 9457 problem-details for the full Section 12.5
+  error table, real cursor pagination and idempotency-key handling (both
+  documented PoC placeholders, not production-grade), a bearer-token
+  stand-in for Section 12.1's own real mTLS/OAuth2 model. `GET .../diff`
+  (registry) is the one genuinely new piece of business logic in the
+  whole package - nothing existing computes a release diff; `breaking`
+  is a documented heuristic and `causeAttribution` an honestly-labelled
+  structural stub, not real provenance.
+- `pipeline/registry_store.py` and `pipeline/workshop_store.py` (new) -
+  file-based persistence for signed releases and workshop records,
+  mirroring `RunStore`'s own established convention.
+- New dependencies, all load-bearing: `fastapi`, `uvicorn[standard]`,
+  `python-docx`, `openpyxl` (dev: `httpx`, `types-openpyxl`) - this
+  repo's first genuinely new dependency *category* since `anthropic` at
+  Increment 6.
+- 1112 tests passing (up from 1045 immediately after I9), `mypy --strict`
+  clean across 228 source and test files, ~99% coverage within every
+  package this work added or extended (`pipeline/orchestrator.py`,
+  `pipeline/registry_store.py`, `pipeline/workshop_store.py`, the
+  extended `pipeline/run_store.py`, and all of `api/`) - the repo's
+  global `fail_under = 85` gate stays the honest floor for the whole
+  suite (97.5% overall), not a per-package overclaim.
+- **Still, honestly, out of scope after this work**: real mTLS / OAuth2
+  client-credentials / workload identity (Section 13) - stood in by a
+  static bearer token only. A persistent/distributed idempotency store
+  and cryptographically opaque cursor tokens - both in-process PoC
+  placeholders. Section 14 observability. RATIFY/ARB checkpoint sealing
+  (no orchestrator path produces either yet - only TRIAGE). Semantic
+  Resolver's review-band adjudication and mapping generation as part of
+  the automatic post-checkpoint continuation (both real, existing, just
+  not wired into `resume_after_checkpoint()` - see above). True
+  `causeAttribution` provenance on the registry diff endpoint.
+  `RunManifest.state` as a closed enum. Any domain other than `claims`
+  in the hermetic orchestrator path. ACORD Reference Architecture content
+  (still permanently unlicensed).
 
 ## Decisions locked in for the rebuild (apply across all increments unless revisited)
 

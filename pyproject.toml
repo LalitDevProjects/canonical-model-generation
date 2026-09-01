@@ -21,6 +21,11 @@ classifiers = [
 # Scoped to what each increment actually needs (connectors/parsers at
 # I2-I3, agent/model gateway at I6, algorithms at I7-I8, mapping DSL at
 # I9, observability at I14) rather than front-loading unused packages.
+# fastapi/uvicorn/python-docx/openpyxl (Section 12's internal service
+# APIs, built as new work beyond the 9-increment guide) are this repo's
+# first genuinely new *category* of dependency since anthropic at
+# Increment 6 - a web framework and two document-export libraries the
+# API literally cannot exist without, not an incidental addition.
 dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
@@ -29,6 +34,10 @@ dependencies = [
     "lxml>=5.0,<6.0",
     "psycopg[binary]>=3.1",
     "anthropic>=1.0,<2.0",
+    "fastapi>=0.110,<1.0",
+    "uvicorn[standard]>=0.27",
+    "python-docx>=1.1",
+    "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
@@ -44,6 +53,8 @@ dev = [
     "black>=23.7",
     "isort>=5.12",
     "pre-commit>=3.3",
+    "httpx>=0.27",
+    "types-openpyxl>=3.1",
 ]
 
 [project.urls]
@@ -51,7 +62,7 @@ Homepage = "https://github.com/example/canonical-model-generation"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*", "parsers*", "algorithms*", "gate*", "substrate*", "agents*", "tools*", "eval*", "mapping*", "emit*"]
+include = ["contracts*", "generated*", "config*", "connectors*", "pipeline*", "parsers*", "algorithms*", "gate*", "substrate*", "agents*", "tools*", "eval*", "mapping*", "emit*", "api*"]
 
 [tool.black]
 line-length = 100
@@ -107,7 +118,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["generated", "contracts", "config", "connectors", "pipeline", "parsers", "algorithms", "gate", "substrate", "agents", "tools", "eval", "mapping", "emit"]
+source = ["generated", "contracts", "config", "connectors", "pipeline", "parsers", "algorithms", "gate", "substrate", "agents", "tools", "eval", "mapping", "emit", "api"]
 omit = [
     "*/tests/*",
     "generated/py.typed",
